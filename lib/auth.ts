@@ -1,32 +1,19 @@
 // This file contains helper functions for authentication flows
 
+import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from "next-auth/react"
+
 /**
- * Sign in with Google using Supabase
- * Placeholder for actual Supabase integration
+ * Sign in with Google using NextAuth.js
  */
 export async function signInWithGoogle() {
   try {
-    // TODO: Integrate with Supabase Auth
-    // const { data, error } = await supabase.auth.signInWithOAuth({
-    //   provider: 'google',
-    //   options: {
-    //     redirectTo: `${window.location.origin}/auth/callback`,
-    //   },
-    // })
-    // if (error) throw error
-    // return data
-
-    // Placeholder: simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          message: "Google Sign-in successful",
-        })
-      }, 1500)
+    const result = await nextAuthSignIn("google", {
+      redirect: true,
+      redirectTo: "/dashboard",
     })
+    return result
   } catch (error) {
-    console.error("Google Sign-in error:", error)
+    console.error("[v0] Google Sign-in error:", error)
     throw error
   }
 }
@@ -36,31 +23,28 @@ export async function signInWithGoogle() {
  */
 export async function signOut() {
   try {
-    // TODO: Integrate with Supabase Auth
-    // const { error } = await supabase.auth.signOut()
-    // if (error) throw error
-
-    // Placeholder
+    await nextAuthSignOut({
+      redirect: true,
+      redirectTo: "/",
+    })
     return { success: true }
   } catch (error) {
-    console.error("Sign out error:", error)
+    console.error("[v0] Sign out error:", error)
     throw error
   }
 }
 
 /**
- * Get current user session
+ * Get current user session (client-side)
+ * Use useSession hook from next-auth/react for client components
  */
 export async function getCurrentUser() {
   try {
-    // TODO: Integrate with Supabase Auth
-    // const { data: { user } } = await supabase.auth.getUser()
-    // return user
-
-    // Placeholder
+    // This is a server-side function
+    // For client-side, use useSession() hook from next-auth/react
     return null
   } catch (error) {
-    console.error("Get current user error:", error)
+    console.error("[v0] Get current user error:", error)
     return null
   }
 }

@@ -5,6 +5,8 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import { Suspense } from "react"
+import { SessionProvider } from "next-auth/react"
+import { getServerSession } from "next-auth"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,19 +28,23 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://vocaris.app"),
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const session = await getServerSession()
+
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} antialiased`} suppressHydrationWarning>
       <body className="font-sans bg-background text-foreground">
         <Suspense fallback={null}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            {children}
-            <Analytics />
-          </ThemeProvider>
+          <SessionProvider session={session}>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+              {children}
+              <Analytics />
+            </ThemeProvider>
+          </SessionProvider>
         </Suspense>
       </body>
     </html>
