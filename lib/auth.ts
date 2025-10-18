@@ -19,6 +19,23 @@ export async function signInWithGoogle() {
 }
 
 /**
+ * Add demo sign-in function for testing without Google credentials
+ */
+export async function signInWithDemo() {
+  try {
+    const result = await nextAuthSignIn("credentials", {
+      email: "demo@vocaris.ai",
+      redirect: true,
+      redirectTo: "/dashboard",
+    })
+    return result
+  } catch (error) {
+    console.error("[v0] Demo sign-in error:", error)
+    throw error
+  }
+}
+
+/**
  * Sign out the current user
  */
 export async function signOut() {

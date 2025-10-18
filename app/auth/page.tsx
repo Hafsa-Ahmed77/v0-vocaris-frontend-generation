@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
+import { DemoSignInButton } from "@/components/auth/demo-sign-in-button"
 import Link from "next/link"
 
 export default function AuthPage() {
@@ -31,7 +32,10 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <GoogleSignInButton className="w-full" />
+            <div className="space-y-3">
+              <GoogleSignInButton className="w-full" />
+              <DemoSignInButton className="w-full" />
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
