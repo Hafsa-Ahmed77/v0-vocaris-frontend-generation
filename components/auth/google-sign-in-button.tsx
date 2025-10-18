@@ -3,9 +3,10 @@
 import { Button } from "@/components/ui/button"
 import { FcGoogle } from "react-icons/fc"
 import { useState } from "react"
-import { signInWithGoogle } from "@/lib/auth"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { signIn } from "next-auth/react";
+
 
 interface GoogleSignInButtonProps {
   className?: string
@@ -17,19 +18,17 @@ export function GoogleSignInButton({ className, variant = "default" }: GoogleSig
   const router = useRouter()
 
   async function handleSignIn() {
-    try {
-      setLoading(true)
-      await signInWithGoogle()
-      // TODO: Replace with actual redirect after Supabase integration
-      toast.success("Signed in successfully!")
-      router.push("/onboarding-chat")
-    } catch (error) {
-      console.error("[v0] Sign-in error:", error)
-      toast.error("Failed to sign in. Please try again.")
-    } finally {
-      setLoading(false)
-    }
+  try {
+    setLoading(true);
+    await signIn("google", { callbackUrl: "/onboarding-chat" });
+  } catch (error) {
+    console.error("Sign-in error:", error);
+    toast.error("Failed to sign in. Please try again.");
+  } finally {
+    setLoading(false);
   }
+}
+
 
   return (
     <Button
