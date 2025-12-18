@@ -27,7 +27,7 @@ const flowSteps = [
   {
     icon: CheckCircle,
     title: "Finish & Continue",
-    desc: "Review your setup and proceed instantly without friction.",
+    desc: "Proceed instantly without friction.",
   },
   {
     icon: Video,
@@ -42,7 +42,7 @@ const flowSteps = [
   {
     icon: Activity,
     title: "Live Meeting Status",
-    desc: "View real-time status, uptime, and meeting activity.",
+    desc: "View real-time status anduptime.",
   },
   {
     icon: Power,

@@ -78,6 +78,7 @@ export default function OnboardingChatPage() {
 
                 <Button
                   className="flex-1 w-full gap-2 text-white bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 transition-all duration-300 shadow-lg"
+                  onClick={() => router.push("/onboarding-conversation")}
                 >
                   Start onboarding conversation
                 </Button>

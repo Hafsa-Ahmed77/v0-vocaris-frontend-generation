@@ -17,7 +17,7 @@ export default function QuickSetupForm() {
   const [completed, setCompleted] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // progress (assume max 7 questions)
+  // progress (optional)
   const progress =
     questionId && questionId <= 7 ? (questionId / 7) * 100 : started ? 100 : 0
 
@@ -42,11 +42,12 @@ export default function QuickSetupForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_name: userName }),
       })
+      
       const data = await res.json()
       setQuestionId(data.question_id)
       setQuestion(data.question)
       setStarted(true)
-    } catch {
+    } catch (err) {
       alert("Server not responding")
     } finally {
       setLoading(false)
@@ -54,8 +55,9 @@ export default function QuickSetupForm() {
   }
 
   // Submit answer
-  const submitAnswer = async (finalAnswer: string) => {
-    if (!finalAnswer.trim() || questionId === null) return
+  const submitAnswer = async () => {
+    if (!answer.trim() && answer !== "") return
+    if (questionId === null) return
 
     try {
       setLoading(true)
@@ -65,9 +67,10 @@ export default function QuickSetupForm() {
         body: JSON.stringify({
           user_name: userName,
           question_id: questionId,
-          answer: finalAnswer,
+          answer: answer,
         }),
       })
+      
       const data = await res.json()
       setAnswer("")
 
@@ -77,7 +80,7 @@ export default function QuickSetupForm() {
         setQuestionId(data.question_id)
         setQuestion(data.question)
       }
-    } catch {
+    } catch (err) {
       alert("Something went wrong")
     } finally {
       setLoading(false)
@@ -85,9 +88,14 @@ export default function QuickSetupForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-sky-50 to-sky-100 px-4">
-      <div className="w-full max-w-xl rounded-3xl bg-gradient-to-br from-sky-200 via-white to-sky-100 shadow-xl border border-slate-200 p-8">
-        {/* Progress bar */}
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden
+ bg-gradient-to-br from-indigo-50 via-sky-50 to-purple-100 px-4">
+{/* background decoration */}
+<div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-400/25 rounded-full blur-3xl" />
+<div className="absolute top-1/3 -right-32 w-96 h-96 bg-sky-400/20 rounded-full blur-3xl" />
+<div className="absolute bottom-0 left-1/4 w-80 h-80 bg-purple-400/25 rounded-full blur-3xl" />
+<div className="relative z-10 w-full max-w-xl rounded-3xl bg-gradient-to-br from-sky-200 via-white to-sky-100 shadow-xl border border-slate-200 p-8">
+  {/* Progress bar */}
         <div className="w-full h-2 bg-slate-200 rounded-full mb-6 overflow-hidden">
           <motion.div
             className="h-full bg-blue-600"
@@ -95,7 +103,6 @@ export default function QuickSetupForm() {
             transition={{ duration: 0.5 }}
           />
         </div>
-
         {/* Title */}
         <h2 className="text-3xl font-bold text-slate-900 text-center mb-1">
           Quick Setup
@@ -108,31 +115,41 @@ export default function QuickSetupForm() {
           {/* Name Step */}
           {!started && !completed && (
             <motion.div
-              key="name-step"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-5"
-            >
-              <input
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="Your name"
-                className="w-full rounded-xl border px-4 py-3 text-black font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-
+            key="name-step"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-5"
+          >
+            <input
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Your name"
+              className="w-full rounded-xl border px-4 py-3 text-black font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          
+            <div className="flex gap-4">
+              <button
+                onClick={() => router.back()}
+                className="flex-1 rounded-xl border bg-sky-600 border-gray-300 py-3 font-semibold text-white-700 hover:bg-gray-100 transition"
+              >
+                Go Back
+              </button>
+          
               <button
                 onClick={startForm}
-                className="w-full rounded-xl bg-blue-600 py-3 text-black font-semibold hover:bg-blue-700 transition"
+                className="flex-1 rounded-xl bg-sky-600 py-3 text-white font-semibold hover:bg-blue-700 transition"
               >
                 {loading ? "Starting..." : "Start"}
               </button>
-            </motion.div>
+            </div>
+          </motion.div>
+          
           )}
 
           {/* Question Step */}
-          {started && !completed && (
+          {started && !completed && questionId !== null && (
             <motion.div
               key="question-step"
               initial={{ opacity: 0, y: 10 }}
@@ -142,40 +159,19 @@ export default function QuickSetupForm() {
               className="space-y-6"
             >
               <p className="text-lg font-medium text-slate-800">{question}</p>
-
-              {/* YES / NO example */}
-              {questionId === 2 ? (
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => submitAnswer("yes")}
-                    className="flex-1 rounded-xl border-2 border-blue-600 text-blue-600 py-3 hover:bg-blue-50 transition"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={() => submitAnswer("no")}
-                    className="flex-1 rounded-xl border border-slate-300 py-3 hover:bg-slate-50 transition"
-                  >
-                    No
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <textarea
-                    rows={4}
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    placeholder="Type your answer..."
-                    className="w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition"
-                  />
-                  <button
-                    onClick={() => submitAnswer(answer)}
-                    className="w-full rounded-xl bg-blue-600 py-3 text-white font-semibold hover:bg-blue-700 transition"
-                  >
-                    {loading ? "Submitting..." : "Next"}
-                  </button>
-                </>
-              )}
+              <textarea
+                rows={4}
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="Type your answer..."
+                className="w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition"
+              />
+              <button
+                onClick={submitAnswer}
+                className="w-full rounded-xl bg-blue-600 py-3 text-black font-semibold hover:bg-blue-700 transition"
+              >
+                {loading ? "Submitting..." : "Next"}
+              </button>
             </motion.div>
           )}
 

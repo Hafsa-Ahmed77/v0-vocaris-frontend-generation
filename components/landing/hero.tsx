@@ -67,15 +67,8 @@ export function Hero() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="border-2 hover:bg-slate-50 dark:hover:bg-slate-900 bg-transparent"
-              >
-                <Link href="#how-it-works">Watch Demo</Link>
-              </Button>
-            </motion.div>
+          
+          </motion.div>
           </motion.div>
 
           {/* Right Column — Robot Illustration */}

@@ -2,28 +2,28 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { motion } from "framer-motion"
-import { Calendar, Mic, FileText, MessageCircle, ArrowRight } from "lucide-react"
+import { Calendar, Mic, FileText, MessageCircle, ArrowRight,LogIn,ClipboardList,Video } from "lucide-react"
 
 const steps = [
   {
-    icon: Calendar,
-    title: "Connect",
-    desc: "Link your Google Calendar to auto-detect meetings.",
+    icon: LogIn,
+    title: "Sign in with Google",
+    desc: "Quick and secure authentication using your Google account.",
   },
   {
-    icon: Mic,
-    title: "Participate",
-    desc: "Vocaris joins, transcribes, and captures key points.",
+    icon: ClipboardList,
+    title: "Smart Onboarding",
+    desc: "Complete onboarding via form or conversational AI — your choice.",
   },
   {
-    icon: FileText,
-    title: "Summarize",
-    desc: "Instant summaries, action items, and highlights.",
+    icon: Video,
+    title: "Start Meeting",
+    desc: "Enter meeting name and URL to begin the session.",
   },
   {
     icon: MessageCircle,
     title: "Collaborate",
-    desc: "Chat with an RAG assistant about any meeting.",
+    desc: "Chat with an RAG assistant about meeting.",
   },
 ]
 
