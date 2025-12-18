@@ -180,3 +180,7 @@
     }
   }
 }
+@keyframes waveMove {
+  from { transform: translateX(-10%); }
+  to { transform: translateX(10%); }
+}

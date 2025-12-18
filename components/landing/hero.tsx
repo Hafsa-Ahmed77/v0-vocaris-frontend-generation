@@ -10,7 +10,8 @@ export function Hero() {
     <section className="relative min-h-screen overflow-hidden flex items-center">
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" />
+<div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" />
+
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 py-20 lg:py-32 w-full">
@@ -77,27 +78,64 @@ export function Hero() {
             </motion.div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-            className="relative"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-accent/20 rounded-3xl blur-2xl" />
-              <div className="relative glass rounded-3xl p-1 overflow-hidden">
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 min-h-96 flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-secondary/20 mx-auto">
-                      <Sparkles className="w-8 h-8 text-secondary" />
-                    </div>
-                    <p className="text-white/60 text-sm">Dashboard Preview</p>
-                    <p className="text-white/40 text-xs">Coming soon with live demo</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          {/* Right Column — Robot Illustration */}
+{/* Robot Listening Animation */}
+<motion.div
+  className="relative flex justify-center items-center"
+  initial={{ opacity: 0, scale: 0.9 }}
+  animate={{ opacity: 1, scale: 1 }}
+  transition={{ duration: 0.8, delay: 0.4 }}
+>
+  {/* Pulsing Rings */}
+  <motion.div
+    className="absolute rounded-full border border-cyan-400/40"
+    style={{ width: 420, height: 420 }}
+    animate={{
+      scale: [1, 1.3, 1],
+      opacity: [0.6, 0.2, 0.6],
+    }}
+    transition={{
+      duration: 3,
+      repeat: Infinity,
+      ease: "easeInOut",
+    }}
+  />
+  <motion.div
+    className="absolute rounded-full border border-blue-400/30"
+    style={{ width: 480, height: 480 }}
+    animate={{
+      scale: [1.1, 1.4, 1.1],
+      opacity: [0.3, 0.1, 0.3],
+    }}
+    transition={{
+      duration: 3.5,
+      repeat: Infinity,
+      ease: "easeInOut",
+    }}
+  />
+
+  {/* Robot Image */}
+  <motion.img
+    src="/robot-ai.png"
+    alt="AI Voice Assistant Robot"
+    className="relative w-[400px] md:w-[480px] drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]"
+    animate={{
+      y: [0, -12, 0],
+      filter: [
+        "drop-shadow(0 0 15px rgba(59,130,246,0.4))",
+        "drop-shadow(0 0 25px rgba(59,130,246,0.7))",
+        "drop-shadow(0 0 15px rgba(59,130,246,0.4))",
+      ],
+    }}
+    transition={{
+      duration: 4,
+      repeat: Infinity,
+      ease: "easeInOut",
+    }}
+  />
+</motion.div>
+
+
         </div>
       </div>
     </section>

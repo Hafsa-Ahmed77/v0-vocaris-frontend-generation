@@ -28,8 +28,6 @@ export function GoogleSignInButton({ className, variant = "default" }: GoogleSig
     setLoading(false);
   }
 }
-
-
   return (
     <Button
       className={className}

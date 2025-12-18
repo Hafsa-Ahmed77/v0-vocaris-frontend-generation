@@ -3,67 +3,73 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
-import Link from "next/link"
+import {SiteHeader} from "@/components/site-header"
+
 
 export default function AuthPage() {
   return (
-    <div className="grid min-h-dvh place-items-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md space-y-6"
-      >
-        {/* Logo/Branding */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold gradient-text">Vocaris</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Your intelligent meeting partner for seamless conversation
+    <div className="relative flex flex-col min-h-screen  bg-gradient-to-b
+        from-blue-100
+        via-white
+        to-blue-200
+
+">
+  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),transparent_70%)]
+
+" />
+
+      {/* Header */}
+      <SiteHeader />
+
+      {/* Main content */}
+      <main className="flex-1 grid place-items-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md space-y-6"
+        >
+      
+          {/* Sign-in / Sign-up Card */}
+          <Card className="rounded-2xl border bg-white/12
+border-white/15
+backdrop-blur-xl
+shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)]
+
+">
+  
+            <CardHeader className="text-center space-y-2">
+  <CardTitle
+  className="
+    text-2xl font-bold
+    bg-gradient-to-r from-blue-600 via-indigo-500 to-sky-500
+    bg-clip-text text-transparent
+  "
+>
+  Create your account
+</CardTitle>
+</CardHeader>
+
+            <CardContent className="space-y-5">
+  <GoogleSignInButton className="w-full h-11" />
+
+
+              {/* Terms */}
+              <p className="text-center text-xs text-slate-900 font-medium">
+                By continuing, you agree to our{" "}
+                <a href="#" className="underline hover:text-white">Terms of Service</a> and{" "}
+                <a href="#" className="underline hover:text-white">Privacy Policy</a>.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Footer info */}
+          <p className="text-center text-sm text-blue-800 font-semibold">
+            Already have a Google account? Just click "Continue with Google" to sign in.
           </p>
-        </div>
+        </motion.div>
+      </main>
 
-        {/* Sign-in Card */}
-        <Card className="rounded-2xl border-border/50 shadow-lg">
-          <CardHeader>
-            <CardTitle>Sign in to Vocaris</CardTitle>
-            <CardDescription>
-              AI-powered meeting assistant for seamless collaboration and smart insights.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <GoogleSignInButton className="w-full" />
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/30" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
-              </div>
-            </div>
-
-            <p className="text-center text-xs text-muted-foreground">
-              By continuing, you agree to our{" "}
-              <Link href="#" className="underline hover:text-foreground">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="#" className="underline hover:text-foreground">
-                Privacy Policy
-              </Link>
-              .
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground">
-          Don't have an account?{" "}
-          <Link href="/auth" className="font-medium text-secondary hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </motion.div>
     </div>
   )
 }
