@@ -164,7 +164,7 @@ export default function QuickSetupForm() {
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 placeholder="Type your answer..."
-                className="w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition"
+                className="w-full rounded-xl border px-4 py-3 outline-none text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition"
               />
               <button
                 onClick={submitAnswer}

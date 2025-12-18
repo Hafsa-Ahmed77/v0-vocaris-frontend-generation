@@ -22,13 +22,9 @@ export default function MeetingChatPage() {
 
   if (!botId) return <div className="p-10 text-center text-gray-700">Invalid meeting</div>
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+  useEffect(() => scrollToBottom(), [messages])
 
   const askQuestion = async () => {
     if (!input.trim()) return
@@ -65,8 +61,6 @@ export default function MeetingChatPage() {
 
   return (
     <section className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
-      
-      {/* Header */}
       <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4 bg-white shadow-sm">
         <div>
           <h1 className="text-lg font-semibold">Transcript Chat</h1>
@@ -75,8 +69,7 @@ export default function MeetingChatPage() {
 
         <Button
           variant="outline"
-          className="gap-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 
-            text-white"
+          className="gap-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 text-white"
           onClick={() => router.push("/start-meeting")}
         >
           <PlusCircle className="h-4 w-4" />
@@ -84,15 +77,12 @@ export default function MeetingChatPage() {
         </Button>
       </header>
 
-      {/* Messages */}
       <main className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
         {messages.map((m, i) => (
           <div key={i} className={`max-w-2xl ${m.role === "user" ? "ml-auto text-right" : ""}`}>
             <div
               className={`rounded-xl px-4 py-3 text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-blue-100 text-blue-900"
-                  : "bg-gray-100 text-gray-900"
+                m.role === "user" ? "bg-blue-100 text-blue-900" : "bg-gray-100 text-gray-900"
               }`}
             >
               {m.content}
@@ -103,7 +93,6 @@ export default function MeetingChatPage() {
         {loading && <p className="text-sm text-gray-500">Analyzing transcript…</p>}
       </main>
 
-      {/* Input */}
       <footer className="border-t border-gray-200 p-4 flex gap-3 bg-white shadow-sm">
         <textarea
           value={input}
