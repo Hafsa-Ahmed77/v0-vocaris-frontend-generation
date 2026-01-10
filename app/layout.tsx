@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   generator: "v0.app",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
   metadataBase: new URL("https://vocaris.app"),
+  verification: {
+    google: "vncJkST-1utdpyLd0wEXg3uiEdbmD3n1nhEYMy7itqQ",
+  },  
 }
 
 export default function RootLayout({

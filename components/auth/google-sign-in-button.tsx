@@ -3,31 +3,25 @@
 import { Button } from "@/components/ui/button"
 import { FcGoogle } from "react-icons/fc"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { signIn } from "next-auth/react";
-
 
 interface GoogleSignInButtonProps {
   className?: string
   variant?: "default" | "outline" | "ghost"
 }
 
-export function GoogleSignInButton({ className, variant = "default" }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({
+  className,
+  variant = "default",
+}: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
-  async function handleSignIn() {
-  try {
-    setLoading(true);
-    await signIn("google", { callbackUrl: "/onboarding-chat" });
-  } catch (error) {
-    console.error("Sign-in error:", error);
-    toast.error("Failed to sign in. Please try again.");
-  } finally {
-    setLoading(false);
+  function handleSignIn() {
+    setLoading(true)
+    // 🔑 Start Google OAuth
+    window.location.href =
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/google?redirect_url=${window.location.origin}/auth/callback`
   }
-}
+
   return (
     <Button
       className={className}
