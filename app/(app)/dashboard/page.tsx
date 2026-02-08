@@ -1,105 +1,167 @@
 "use client"
 
 import useSWR from "swr"
-import { OverviewCards } from "@/components/dashboard/overview-cards"
 import { UpcomingMeetings } from "@/components/dashboard/upcoming-meetings"
-import { MeetingSummariesTable } from "@/components/dashboard/meeting-summaries-table"
-import { RAGChatWidget } from "@/components/chat/rag-chat-widget"
-import {
-  aiParticipationData,
-  getOverviewMetrics,
-  getUpcomingMeetings,
-  getMeetingSummaries,
-} from "@/lib/placeholders/api"
+import { MeetingHistory } from "@/components/dashboard/meeting-history"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const fetcher = (key: string, ...args: any[]) =>
-  // simple fetcher over placeholder functions
-  (async () => {
-    switch (key) {
-      case "overview":
-        return getOverviewMetrics()
-      case "upcoming":
-        return getUpcomingMeetings()
-      case "summaries":
-        return getMeetingSummaries()
-      default:
-        return null
-    }
-  })()
+import { getUpcomingMeetings, getMeetingHistory } from "@/lib/api"
+
+// 🔁 SWR fetcher (existing – untouched)
+const fetcher = () => getUpcomingMeetings()
 
 export default function DashboardPage() {
-  const { data: overview, isLoading: loadingOverview } = useSWR(["overview"], fetcher)
-  const { data: upcoming, isLoading: loadingUpcoming } = useSWR(["upcoming"], fetcher)
-  const { data: summaries, isLoading: loadingSummaries } = useSWR(["summaries"], fetcher)
+  const [offset, setOffset] = useState(0)
+  const limit = 50 
+  // ================= Upcoming Meetings (AS IT IS) =================
+  const { data, isLoading, error } = useSWR(
+    "calendar-events",
+    async () => {
+      const token = localStorage.getItem("token")
+      console.log("🔑 Dashboard Token:", token)
 
+      if (!token) {
+        console.warn("❌ No token found")
+        return null
+      }
+
+      console.log("📡 Calling calendar events API...")
+      const res = await getUpcomingMeetings()
+      console.log("✅ Calendar API response:", res)
+      return res
+    }
+  )
+
+  // ================= Meeting History (NEW – SAME STYLE) =================
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    error: historyError,
+  } = useSWR(
+    ["meeting-history", offset], 
+    async () => {
+      const token = localStorage.getItem("token")
+      if (!token) return null
+  
+      console.log("📡 Calling meeting history API...")
+      const res = await getMeetingHistory(limit, offset) // <-- pass limit & offset
+      console.log("📜 Meeting history API response:", res)
+  
+      return res
+    },
+    { keepPreviousData: true }
+  )
+  
+  
+
+  if (error) {
+    return <div className="text-red-500">Failed to load calendar events</div>
+  }
+
+  if (historyError) {
+    return <div className="text-red-500">Failed to load meeting history</div>
+  }
+// Handle "Load More"
+const handleLoadMore = () => {
+  setOffset((prev) => prev + limit)
+}
+
+const hasMore =
+  historyData && historyData.total
+    ? offset + limit < historyData.total
+    : false
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <div className="lg:col-span-2 space-y-4">
-        <section>
-          {loadingOverview ? <Skeleton className="h-28 w-full rounded-xl" /> : <OverviewCards data={overview} />}
-        </section>
+    <div className="grid gap-4">
+      {/* ================= Upcoming Meetings ================= */}
+      <section>
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardTitle>Upcoming Meetings</CardTitle>
+          </CardHeader>
 
-        <section className="grid gap-4 md:grid-cols-2">
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle>AI Participation</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={aiParticipationData} margin={{ right: 16, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="score" stroke="var(--brand-cyan)" dot={false} strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </div>
+            ) : (
+              <>
+                {/* Empty state */}
+                {data?.events?.length === 0 && (
+                  <p className="text-muted-foreground text-sm">
+                    No upcoming meetings in the next 15 days
+                  </p>
+                )}
 
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle>Upcoming Meetings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingUpcoming ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-10 w-full rounded-xl" />
-                  <Skeleton className="h-10 w-full rounded-xl" />
-                  <Skeleton className="h-10 w-full rounded-xl" />
-                </div>
-              ) : (
-                <UpcomingMeetings items={upcoming || []} />
-              )}
-            </CardContent>
-          </Card>
-        </section>
+                <UpcomingMeetings
+                  items={
+                    data?.events?.map((e: any) => ({
+                      id: e.event_id,
+                      title: e.title,
+                      with: e.organizer,
+                      start_time: e.start_time,
+                      end_time: e.end_time,
+                      meeting_url: e.meeting_url,
+                      auto_join_enabled: e.auto_join_enabled,
+                    })) || []
+                  }
+                />
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
-        <section>
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle>Meeting Summaries</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingSummaries ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-8 w-full rounded-xl" />
-                  <Skeleton className="h-8 w-full rounded-xl" />
-                </div>
-              ) : (
-                <MeetingSummariesTable rows={summaries || []} />
-              )}
-            </CardContent>
-          </Card>
-        </section>
-      </div>
+      {/* ================= Meeting History ================= */}
+      <section>
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardTitle>Meeting History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {historyLoading && offset === 0 ? (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </div>
+            ) : (
+              <>
+                {historyData?.meetings?.length === 0 && (
+                  <p className="text-muted-foreground text-sm">
+                    No past meetings found
+                  </p>
+                )}
+                <MeetingHistory
+                  items={historyData?.meetings?.map((m: any) => ({
+                    id: m.id,
+                    start_time: m.start_time,
+                    end_time: m.end_time,
+                    duration: m.duration_seconds,
+                    meeting_url: m.meeting_url,
+                    status: m.status,
+                  })) || []}
+                />
+                {/* Load More Button */}
+                {hasMore && (
+                  <div className="mt-4 flex justify-center">
+                    <button
+  onClick={handleLoadMore}
+  disabled={historyLoading}
+  className="px-4 py-2 rounded-xl bg-black text-white hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {historyLoading ? "Loading…" : "Load More"}
+</button>
 
-      <aside className="lg:col-span-1">
-        <RAGChatWidget />
-      </aside>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   )
 }
