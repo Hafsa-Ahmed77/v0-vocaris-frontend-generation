@@ -7,10 +7,12 @@ import { Bot, CalendarDays, Settings, ListChecks, MessageSquare } from "lucide-r
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: Bot },
+ 
   { href: "/meetings/123", label: "Meetings", icon: CalendarDays }, // example detail
   { href: "/scrum", label: "Scrum", icon: ListChecks },
-  { href: "/chatbot", label: "Chatbot", icon: MessageSquare },
+  // { href: "/chatbot", label: "Chatbot", icon: MessageSquare },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/onboarding-chat", label: "Onboarding Chat", icon: MessageSquare },
 ]
 
 export function Sidebar() {
