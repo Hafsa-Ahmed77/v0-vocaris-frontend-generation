@@ -10,6 +10,8 @@ type Message = {
   content: string
 }
 
+import { apiFetch } from "@/lib/api"
+
 export default function MeetingChatPage() {
   const params = useSearchParams()
   const router = useRouter()
@@ -35,12 +37,10 @@ export default function MeetingChatPage() {
     setLoading(true)
 
     try {
-      const res = await fetch("/api/query-meeting", {
+      const data = await apiFetch("/query-meeting", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ botId, query: userMsg.content }),
       })
-      const data = await res.json()
       setMessages((prev) => [...prev, { role: "ai", content: data.answer }])
     } catch {
       setMessages((prev) => [
@@ -81,9 +81,8 @@ export default function MeetingChatPage() {
         {messages.map((m, i) => (
           <div key={i} className={`max-w-2xl ${m.role === "user" ? "ml-auto text-right" : ""}`}>
             <div
-              className={`rounded-xl px-4 py-3 text-sm leading-relaxed ${
-                m.role === "user" ? "bg-blue-100 text-blue-900" : "bg-gray-100 text-gray-900"
-              }`}
+              className={`rounded-xl px-4 py-3 text-sm leading-relaxed ${m.role === "user" ? "bg-blue-100 text-blue-900" : "bg-gray-100 text-gray-900"
+                }`}
             >
               {m.content}
             </div>

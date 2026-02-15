@@ -3,11 +3,16 @@ import { NextRequest, NextResponse } from "next/server"
 export async function POST(req: NextRequest) {
   const { botId, query } = await req.json()
 
+  const authHeader = req.headers.get("Authorization")
+
   const res = await fetch(
     `https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/transcripts/${botId}/query`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
       body: JSON.stringify({ query }),
     }
   )

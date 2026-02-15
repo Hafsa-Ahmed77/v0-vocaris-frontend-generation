@@ -4,7 +4,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
+
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -12,12 +12,14 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://vocaris-ztudf.ondigitalocean.app/api/v1/:path*',
-      },
-    ]
+    return {
+      fallback: [
+        {
+          source: '/api/:path*',
+          destination: 'https://vocaris-ztudf.ondigitalocean.app/api/v1/:path*',
+        },
+      ],
+    }
   },
 }
 
