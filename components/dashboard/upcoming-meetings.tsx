@@ -1,8 +1,10 @@
+"use client"
+
 import { useState } from "react"
-import { CalendarDays, Video } from "lucide-react"
-import { enableAutoJoin } from "@/lib/api"
-import { disableAutoJoin } from "@/lib/api"
+import { MoreVertical, Clock, Users } from "lucide-react"
+import { enableAutoJoin, disableAutoJoin } from "@/lib/api"
 import { mutate } from "swr"
+import { cn } from "@/lib/utils"
 
 type Meeting = {
   id: string
@@ -11,125 +13,119 @@ type Meeting = {
   start_time?: string
   end_time?: string
   meeting_url?: string
-  auto_join_enabled?: boolean 
+  auto_join_enabled?: boolean
 }
 
 export function UpcomingMeetings({ items }: { items: Meeting[] }) {
   const [loadingIds, setLoadingIds] = useState<string[]>([])
-  const [enabledIds, setEnabledIds] = useState<string[]>([])
 
   const handleAutoJoin = async (eventId: string) => {
     if (loadingIds.includes(eventId)) return
-  
     try {
       setLoadingIds((prev) => [...prev, eventId])
       await enableAutoJoin(eventId)
       mutate("calendar-events")
-      // ❌ enabledIds update hata do
     } catch (err) {
       console.error(err)
-      alert("❌ Failed to enable auto join")
     } finally {
       setLoadingIds((prev) => prev.filter((id) => id !== eventId))
     }
   }
-  
-  
+
   const handleDisableAutoJoin = async (eventId: string) => {
     if (loadingIds.includes(eventId)) return
-  
     try {
       setLoadingIds((prev) => [...prev, eventId])
       await disableAutoJoin(eventId)
       mutate("calendar-events")
     } catch (err) {
       console.error(err)
-      alert("❌ Failed to disable auto join")
     } finally {
       setLoadingIds((prev) => prev.filter((id) => id !== eventId))
     }
   }
-  
-  
+
   return (
-    <ul className="space-y-3">
+    <div className="space-y-6">
       {items.map((m) => {
         const isLoading = loadingIds.includes(m.id)
         const isEnabled = m.auto_join_enabled === true
 
-
         const start = m.start_time ? new Date(m.start_time) : null
         const end = m.end_time ? new Date(m.end_time) : null
 
+        const month = start?.toLocaleString("default", { month: "short" }).toUpperCase()
+        const day = start?.getDate()
+
         return (
-          <li
+          <div
             key={m.id}
-            className="rounded-2xl border bg-background p-4 flex items-center justify-between"
+            className="group block bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-all duration-300"
           >
-            {/* LEFT */}
-            <div className="flex gap-4 min-w-0">
-              <div className="mt-1">
-                <CalendarDays className="size-5 text-muted-foreground" />
+            <div className="flex items-start gap-5">
+              {/* Date Badge */}
+              <div className="shrink-0 w-16 h-20 bg-blue-50 rounded-2xl flex flex-col items-center justify-center border border-blue-100/50">
+                <span className="text-[10px] font-black text-blue-400 tracking-widest">{month}</span>
+                <span className="text-2xl font-black text-blue-600">{day}</span>
               </div>
 
-              <div className="min-w-0">
-                <div className="font-medium truncate">{m.title}</div>
-
-                {start && end && (
-                  <div className="text-sm text-muted-foreground">
-                    {start.toLocaleDateString()} •{" "}
-                    {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}{" "}
-                    –{" "}
-                    {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-slate-800 leading-tight truncate px-1">
+                      {m.title}
+                    </h3>
+                    {start && end && (
+                      <div className="flex items-center gap-2 text-slate-400 font-medium text-sm">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {" "}-{" "}
+                          {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
 
-                <div className="text-xs text-muted-foreground">
-                  Organizer: {m.with}
+                  {/* Status Badge */}
+                  <div className={cn(
+                    "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                    isEnabled ? "bg-green-100 text-green-600" : "bg-slate-100 text-slate-400"
+                  )}>
+                    {isEnabled ? "Confirmed" : "Pending"}
+                  </div>
                 </div>
 
-                {m.meeting_url && (
-                  <a
-                    href={m.meeting_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary mt-1 hover:underline"
+                {/* Footer Section: Attendees & Menu */}
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-50">
+                  <div className="flex items-center gap-4">
+                    <div className="flex -space-x-2">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-slate-400">U{i}</span>
+                        </div>
+                      ))}
+                      <div className="w-8 h-8 rounded-full border-2 border-white bg-blue-500 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-white">+4</span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-slate-400">7 attendees</span>
+                  </div>
+
+                  <button
+                    onClick={() => isEnabled ? handleDisableAutoJoin(m.id) : handleAutoJoin(m.id)}
+                    disabled={isLoading}
+                    className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
                   >
-                    <Video className="size-3" />
-                    Join Google Meet
-                  </a>
-                )}
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* RIGHT */}
-            <div className="flex items-center">
-            {isEnabled ? (
-  <button
-    onClick={() => handleDisableAutoJoin(m.id)}
-    disabled={isLoading}
-    className={`text-sm px-4 py-2 rounded-xl bg-red-500 text-white transition ${
-      isLoading ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
-    }`}
-  >
-    {isLoading ? "Disabling…" : "Disable Auto Join"}
-  </button>
-) : (
-  <button
-    onClick={() => handleAutoJoin(m.id)}
-    disabled={isLoading}
-    className={`text-sm px-4 py-2 rounded-xl bg-black text-white transition ${
-      isLoading ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
-    }`}
-  >
-    {isLoading ? "Enabling…" : "Enable Auto Join"}
-  </button>
-)}
-
-            </div>
-          </li>
+          </div>
         )
       })}
-    </ul>
+    </div>
   )
 }

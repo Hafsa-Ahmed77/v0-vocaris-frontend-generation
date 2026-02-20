@@ -33,13 +33,9 @@ export default function AuthCallbackPage() {
       .then((user) => {
         localStorage.setItem("user", JSON.stringify(user))
 
-        const isNewUser = user.created_at === user.last_login
-
-        if (isNewUser) {
-          router.replace("/onboarding-chat")
-        } else {
-          router.replace("/dashboard")
-        }
+        // Always redirect to onboarding selection as per user request
+        console.log(`[AuthCallback] User: ${user.email} authenticated. Routing to onboarding selection.`)
+        router.replace("/onboarding-selection")
       })
       .catch(() => {
         localStorage.removeItem("token")

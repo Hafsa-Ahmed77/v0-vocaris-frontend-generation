@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -7,6 +8,13 @@ import { motion } from "framer-motion"
 import { Sparkles } from "lucide-react"
 
 export function SiteHeader() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    setIsLoggedIn(!!token)
+  }, [])
+
   return (
     <header className="sticky top-0 z-50 w-full">
       <div className="glass border-b border-white/10 bg-gradient-to-r from-[#0A0F1C]/90 via-[#111827]/80 to-[#1E293B]/90 backdrop-blur-xl shadow-[0_0_25px_rgba(59,130,246,0.15)]">
@@ -43,20 +51,33 @@ export function SiteHeader() {
           {/* Right controls */}
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Button
-              asChild
-              size="sm"
-              className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-md hover:shadow-lg transition-all"
-            >
-              <Link href="/auth">Sign in</Link>
-            </Button>
-            <Button
-              asChild
-              size="sm"
-              className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-md hover:shadow-lg transition-all"
-            >
-              <Link href="/onboarding">Get started</Link>
-            </Button>
+            {isLoggedIn ? (
+              <Button
+                asChild
+                size="sm"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-indigo-500/20 transition-all font-bold px-6 rounded-xl"
+              >
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:text-blue-400 hover:bg-white/5 font-bold transition-all"
+                >
+                  <Link href="/auth">Sign in</Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-md hover:shadow-lg transition-all font-bold rounded-xl"
+                >
+                  <Link href="/auth">Get started</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

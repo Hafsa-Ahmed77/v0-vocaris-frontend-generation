@@ -11,7 +11,7 @@ type HistoryMeeting = {
 
 export function MeetingHistory({ items }: { items: HistoryMeeting[] }) {
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-4">
       {items.map((m) => {
         const start = m.start_time ? new Date(m.start_time) : null
         const end = m.end_time ? new Date(m.end_time) : null
@@ -23,63 +23,69 @@ export function MeetingHistory({ items }: { items: HistoryMeeting[] }) {
         return (
           <li
             key={m.id}
-            className="rounded-2xl border bg-background p-4 flex items-center justify-between"
+            className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 hover:bg-white/[0.05] transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-6"
           >
             {/* LEFT */}
-            <div className="flex gap-4 min-w-0">
-              <div className="mt-1">
-                <CalendarDays className="size-5 text-muted-foreground" />
+            <div className="flex gap-5 min-w-0">
+              <div className="mt-1 shrink-0">
+                <div className="p-3 rounded-xl bg-slate-500/10 border border-slate-500/20 text-slate-400 group-hover:scale-110 transition-transform">
+                  <CalendarDays className="size-6" />
+                </div>
               </div>
 
-              <div className="min-w-0">
-                <div className="font-medium truncate">
-                  Past Meeting
+              <div className="min-w-0 space-y-1.5">
+                <div className="font-bold text-lg text-white">
+                  Past Meeting Session
                 </div>
 
                 {start && end && (
-                  <div className="text-sm text-muted-foreground">
-                    {start.toLocaleDateString()} •{" "}
-                    {start.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    –{" "}
-                    {end.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  <div className="text-sm text-slate-400 flex items-center gap-2">
+                    <span className="font-medium text-slate-300">{start.toLocaleDateString()}</span>
+                    <span className="text-slate-600">•</span>
+                    <span>
+                      {start.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      –{" "}
+                      {end.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
                 )}
 
-                {durationMinutes !== null && (
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <Clock className="size-3" />
-                    Duration: {durationMinutes} min
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-4 pt-1">
+                  {durationMinutes !== null && (
+                    <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                      <Clock className="size-3.5" />
+                      Duration: <span className="text-slate-400 font-medium">{durationMinutes} min</span>
+                    </div>
+                  )}
 
-                {m.meeting_url && (
-                  <a
-                    href={m.meeting_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary mt-1 hover:underline"
-                  >
-                    <Video className="size-3" />
-                    Open Meeting Link
-                  </a>
-                )}
+                  {m.meeting_url && (
+                    <a
+                      href={m.meeting_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      <Video className="size-3.5" />
+                      View Meeting Link
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* RIGHT */}
-            <div>
+            <div className="shrink-0">
               <span
-                className={`text-xs px-3 py-1 rounded-full capitalize ${
-                  m.status === "ended"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-muted text-muted-foreground"
-                }`}
+                className={`text-xs px-4 py-1.5 rounded-full font-bold uppercase tracking-wider border transition-colors ${m.status === "ended"
+                    ? "bg-green-500/10 border-green-500/20 text-green-400"
+                    : "bg-white/5 border-white/10 text-slate-400"
+                  }`}
               >
                 {m.status || "completed"}
               </span>

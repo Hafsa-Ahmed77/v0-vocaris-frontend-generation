@@ -7,7 +7,13 @@ import { HowItWorks } from "@/components/landing/how-it-works"
 import { Features } from "@/components/landing/features"
 import { ContactUs } from "@/components/landing/contact-us"
 
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+
 export default function LandingPage() {
+  const router = useRouter()
+
+
   return (
     <div className="min-h-dvh flex flex-col">
       <SiteHeader />

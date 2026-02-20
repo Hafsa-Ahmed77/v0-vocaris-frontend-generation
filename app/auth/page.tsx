@@ -5,7 +5,13 @@ import { motion } from "framer-motion"
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
 import { SiteHeader } from "@/components/site-header"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+
 export default function AuthPage() {
+  const router = useRouter()
+
+
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-hidden relative selection:bg-blue-500/30">
 

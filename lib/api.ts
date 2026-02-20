@@ -75,3 +75,20 @@ export function disableAutoJoin(eventId: string) {
     method: "POST",
   })
 }
+
+// Start a meeting manually
+export function startMeeting(meetingUrl: string, isScrum = false, title?: string) {
+  return apiFetch("/start-meeting", {
+    method: "POST",
+    body: JSON.stringify({
+      meeting_url: meetingUrl,
+      is_scrum: isScrum,
+      meeting_title: title
+    }),
+  })
+}
+
+// Get meeting transcripts / tickets
+export function getMeetingTranscripts(botId: string, mode = "simple") {
+  return apiFetch(`/meeting-transcripts?bot_id=${botId}&mode=${mode}`)
+}
