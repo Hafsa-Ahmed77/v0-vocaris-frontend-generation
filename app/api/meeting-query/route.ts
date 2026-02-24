@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
+  console.log("🚀 [API] meeting-query POST called")
   const { botId, query } = await req.json()
+  console.log(`  > botId: ${botId}, query: ${query}`)
 
   const authHeader = req.headers.get("Authorization")
 
   // Try variations for the query endpoint
   const base = "https://vocaris-ztudf.ondigitalocean.app/api/v1"
   const variations = [
-    // 1. Official slash plural
+    // 1. Official slash plural (Most likely)
     `${base}/meeting/transcripts/${botId}/query`,
     // 2. Hyphenated plural
     `${base}/meeting-transcripts/${botId}/query`,
-    // 3. Singular hyphen
+    // 3. Official singular variant
+    `${base}/meeting/transcript/${botId}/query`,
+    // 4. Singular hyphen
     `${base}/meeting-transcript/${botId}/query`,
-    // 4. Direct query
-    `${base}/meeting/${botId}/query`,
-    // 5. Without v1
-    `https://vocaris-ztudf.ondigitalocean.app/api/meeting/transcripts/${botId}/query`,
-    // 6. Plural hyphen without v1
-    `https://vocaris-ztudf.ondigitalocean.app/api/meeting-transcripts/${botId}/query`
+    // 5. Direct meeting query
+    `${base}/meeting/${botId}/query`
   ]
 
   let lastRes: Response | null = null
@@ -78,8 +78,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    error: "Query failed",
-    detail: lastBody,
+    error: "AI Query failed",
+    detail: lastBody || "Internal server or upstream timeout",
     bot_id: botId
   }, { status: lastRes?.status || 502 })
 }

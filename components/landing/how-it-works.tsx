@@ -2,28 +2,28 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { motion } from "framer-motion"
-import { Calendar, Mic, FileText, MessageCircle, ArrowRight,LogIn,ClipboardList,Video } from "lucide-react"
+import { Calendar, Mic, FileText, MessageCircle, ArrowRight, LogIn, ClipboardList, Video, LayoutDashboard, Sparkles } from "lucide-react"
 
 const steps = [
   {
     icon: LogIn,
-    title: "Sign in with Google",
-    desc: "Quick and secure authentication using your Google account.",
+    title: "Secure Sign-In",
+    desc: "Quick authentication with Google to protect your workspace.",
   },
   {
     icon: ClipboardList,
     title: "Smart Onboarding",
-    desc: "Complete onboarding via form or conversational AI — your choice.",
+    desc: "Set up via AI voice conversation or form — your choice.",
   },
   {
-    icon: Video,
-    title: "Start Meeting",
-    desc: "Enter meeting name and URL to begin the session.",
+    icon: LayoutDashboard,
+    title: "Command Center",
+    desc: "View upcoming meetings, stats, and join sessions instantly.",
   },
   {
-    icon: MessageCircle,
-    title: "Collaborate",
-    desc: "Chat with an RAG assistant about meeting.",
+    icon: Sparkles,
+    title: "AI Meetings",
+    desc: "Generate Scrum tickets or chat with transcripts for insights.",
   },
 ]
 
@@ -44,7 +44,7 @@ export function HowItWorks() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
+      transition: { duration: 0.6 },
     },
   }
 

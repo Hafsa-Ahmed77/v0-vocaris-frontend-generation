@@ -138,6 +138,17 @@
   }
 }
 
+/* Hide scrollbar utility */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 /* Premium glassmorphism and animation utilities */
 @layer components {
   .glass {

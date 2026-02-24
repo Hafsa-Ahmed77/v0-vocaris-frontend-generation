@@ -23,66 +23,68 @@ export function QuickJoin({ onStartAgent, isLoading }: QuickJoinProps) {
 
     return (
         <div className="relative group">
-            {/* Gradient Border Glow */}
-            <div className="absolute -inset-[2px] bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500 rounded-[2.2rem] opacity-75 blur-[1px] group-hover:opacity-100 transition-opacity" />
+            {/* Glow Effect */}
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-violet-500/20 rounded-[2.2rem] opacity-75 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
 
-            <div className="relative bg-white rounded-[2.1rem] p-8 shadow-xl">
-                <div className="flex items-center justify-between mb-6">
+            <div className="relative bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-blue-50 text-blue-500">
-                            <Zap className="w-5 h-5 fill-current" />
+                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200 ring-4 ring-blue-50">
+                            <Zap className="size-5 fill-white" />
                         </div>
-                        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Quick Join</h2>
+                        <div>
+                            <h2 className="text-lg font-black text-slate-900 tracking-tight">Quick Join</h2>
+                            <p className="text-xs text-slate-400 font-medium leading-none mt-1">Ready to automate your next meeting</p>
+                        </div>
                     </div>
 
-                    {/* Scrum Toggle */}
-                    <button
-                        type="button"
+                    <div
                         onClick={() => setIsScrum(!isScrum)}
-                        className="flex items-center gap-2 group/toggle px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-2 cursor-pointer select-none group/toggle px-3 py-2 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-colors"
                     >
                         <div className={cn(
-                            "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
-                            isScrum ? "bg-blue-500 border-blue-500" : "bg-white border-slate-200"
+                            "w-8 h-4 rounded-full p-0.5 transition-colors duration-300",
+                            isScrum ? "bg-blue-600" : "bg-slate-300"
                         )}>
-                            {isScrum && <Check className="w-3.5 h-3.5 text-white" />}
+                            <div className={cn(
+                                "w-3 h-3 bg-white rounded-full transition-transform duration-300 shadow-sm",
+                                isScrum ? "translate-x-4" : "translate-x-0"
+                            )} />
                         </div>
                         <span className={cn(
-                            "text-sm font-bold transition-colors",
-                            isScrum ? "text-blue-500" : "text-slate-400"
+                            "text-[10px] font-black uppercase tracking-widest transition-colors",
+                            isScrum ? "text-blue-600" : "text-slate-400"
                         )}>
                             Scrum Mode
                         </span>
-                    </button>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                            <LinkIcon className="w-5 h-5" />
-                        </div>
-                        <Input
+                <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1 relative">
+                        <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-300" />
+                        <input
+                            type="text"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            placeholder="Paste Google Meet URL (e.g. m..."
-                            className="h-14 pl-12 pr-4 bg-slate-50 border-none rounded-2xl text-slate-900 placeholder:text-slate-400 text-base focus-visible:ring-2 focus-visible:ring-blue-500/20"
+                            placeholder="Paste Google Meet or Zoom URL..."
+                            className="w-full pl-11 pr-4 h-14 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                         />
                     </div>
-
-                    <Button
+                    <button
                         type="submit"
-                        disabled={isLoading || !url.trim()}
-                        className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
+                        disabled={isLoading || !url}
+                        className="h-14 px-8 bg-blue-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3"
                     >
-                        {isLoading ? "Starting..." : (
+                        {isLoading ? (
+                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
                             <>
                                 Start Agent
-                                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                                    <Play className="w-3 h-3 fill-current" />
-                                </div>
+                                <Play className="size-4 fill-white" />
                             </>
                         )}
-                    </Button>
+                    </button>
                 </form>
             </div>
         </div>

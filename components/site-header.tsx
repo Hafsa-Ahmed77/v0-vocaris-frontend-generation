@@ -4,11 +4,12 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { motion } from "framer-motion"
-import { Sparkles } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Sparkles, Menu, X } from "lucide-react"
 
 export function SiteHeader() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -50,7 +51,9 @@ export function SiteHeader() {
 
           {/* Right controls */}
           <div className="flex items-center gap-3">
-            <ThemeToggle />
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
             {isLoggedIn ? (
               <Button
                 asChild
@@ -61,14 +64,16 @@ export function SiteHeader() {
               </Button>
             ) : (
               <>
-                <Button
-                  asChild
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:text-blue-400 hover:bg-white/5 font-bold transition-all"
-                >
-                  <Link href="/auth">Sign in</Link>
-                </Button>
+                <div className="hidden sm:block">
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="ghost"
+                    className="text-white hover:text-blue-400 hover:bg-white/5 font-bold transition-all"
+                  >
+                    <Link href="/auth">Sign in</Link>
+                  </Button>
+                </div>
                 <Button
                   asChild
                   size="sm"
@@ -78,9 +83,71 @@ export function SiteHeader() {
                 </Button>
               </>
             )}
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 text-white hover:bg-white/10 rounded-lg md:hidden transition-colors"
+              aria-label="Toggle menu"
+            >
+              <motion.div
+                animate={{ rotate: isMenuOpen ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </motion.div>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="md:hidden glass border-b border-white/10 bg-[#0A0F1C]/95 backdrop-blur-2xl overflow-hidden"
+          >
+            <div className="p-6 space-y-6">
+              <nav className="flex flex-col gap-4">
+                <Link
+                  href="/#how-it-works"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-lg font-bold text-white hover:text-cyan-400 transition-colors py-2"
+                >
+                  How it works
+                </Link>
+                <Link
+                  href="/#contact"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-lg font-bold text-white hover:text-cyan-400 transition-colors py-2"
+                >
+                  Contact
+                </Link>
+              </nav>
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-400">Theme</span>
+                <ThemeToggle />
+              </div>
+              {!isLoggedIn && (
+                <div className="pt-2">
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="w-full text-white hover:text-blue-400 hover:bg-white/5 font-bold justify-start px-0"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Link href="/auth">Sign in</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Gradient underline animation */}
       <motion.div
