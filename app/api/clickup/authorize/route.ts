@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const CLICKUP_CLIENT_ID = "3UB81VU43A2NTKLY8NURUS1A47TI9WFU"
+const CLICKUP_CLIENT_ID = "4KPIR7QHYZ1D61QEQT1EOUP5WDL0ADK8"
 const CLICKUP_CLIENT_SECRET = process.env.CLICKUP_CLIENT_SECRET || ""
 
 export async function GET(req: NextRequest) {

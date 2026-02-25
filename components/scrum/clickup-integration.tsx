@@ -81,8 +81,8 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
 
         // Open ClickUp OAuth directly — backend flow ignores our redirect_uri.
         // ClickUp will redirect to localhost:3000?code=xxx, middleware relays to callback page.
-        const callbackUrl = `${window.location.origin}`
-        const CLICKUP_CLIENT_ID = "3UB81VU43A2NTKLY8NURUS1A47TI9WFU"
+        const callbackUrl = `${window.location.origin}/auth/clickup/callback`
+        const CLICKUP_CLIENT_ID = "4KPIR7QHYZ1D61QEQT1EOUP5WDL0ADK8"
         const url = `https://app.clickup.com/api?client_id=${CLICKUP_CLIENT_ID}&redirect_uri=${encodeURIComponent(callbackUrl)}`
 
         console.log("🔐 Opening ClickUp OAuth directly. Redirect target:", callbackUrl)
