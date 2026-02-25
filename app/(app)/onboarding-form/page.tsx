@@ -131,7 +131,7 @@ export default function OnboardingFormPage() {
 
     return (
         <div className={cn(
-            "h-screen transition-colors duration-700 flex flex-col relative overflow-hidden font-sans",
+            "min-h-dvh transition-colors duration-700 flex flex-col relative font-sans",
             themeClasses.selection,
             isDarkMode ? "bg-[#161e2e] text-white" : "bg-slate-50 text-slate-900"
         )}>
@@ -151,7 +151,7 @@ export default function OnboardingFormPage() {
             </div>
 
             <header className={cn(
-                "relative z-50 h-24 border-b flex items-center justify-between px-8 backdrop-blur-3xl",
+                "relative z-50 h-20 md:h-24 border-b flex items-center justify-between px-6 md:px-8 backdrop-blur-3xl",
                 isDarkMode ? "border-white/5 bg-slate-900/40" : "border-slate-200 bg-white/40"
             )}>
                 <div className="flex items-center gap-6">
@@ -214,7 +214,7 @@ export default function OnboardingFormPage() {
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-4xl mx-auto px-6 flex flex-col relative z-10 overflow-hidden">
+            <main className="flex-1 w-full max-w-4xl mx-auto px-6 flex flex-col relative z-10">
                 <AnimatePresence mode="wait">
                     {step === 0 && (
                         <motion.div
@@ -306,7 +306,7 @@ export default function OnboardingFormPage() {
                             initial={{ opacity: 0, x: 50 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -50 }}
-                            className="flex-1 flex flex-col py-8 space-y-8 overflow-hidden"
+                            className="flex-1 flex flex-col py-8 space-y-8"
                         >
                             <div className="flex-1 flex flex-col justify-center space-y-8">
                                 <div className="space-y-4">
@@ -443,7 +443,7 @@ export default function OnboardingFormPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className={cn(
-                            "relative z-50 h-24 flex items-center justify-center border-t backdrop-blur-3xl",
+                            "relative z-50 h-20 md:h-24 flex items-center justify-center border-t backdrop-blur-3xl",
                             isDarkMode ? "border-white/5 bg-slate-900/40" : "border-slate-200 bg-white/40"
                         )}
                     >

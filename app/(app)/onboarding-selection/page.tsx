@@ -23,14 +23,14 @@ export default function OnboardingSelectionPage() {
 
     return (
         <div className={cn(
-            "h-screen transition-colors duration-700 font-sans selection:bg-blue-500/30 overflow-hidden flex flex-col relative",
+            "min-h-dvh transition-colors duration-700 font-sans selection:bg-blue-500/30 flex flex-col relative",
             isDarkMode ? "bg-[#161e2e] text-white" : "bg-slate-50 text-slate-900"
         )}>
             {/* Neural Matrix Background - Unique constallation engine */}
             <NeuralMatrixBackground active={isDarkMode} />
 
             {/* Premium Header - Re-positioned for balance and visibility */}
-            <header className="relative z-50 h-28 flex items-center justify-between px-6 md:px-12 border-b border-transparent pt-4">
+            <header className="relative z-50 h-20 md:h-28 flex items-center justify-between px-6 md:px-12 border-b border-transparent pt-4">
                 <div className="flex items-center gap-4 group cursor-pointer" onClick={() => router.push("/dashboard")}>
                     <motion.div
                         whileHover={{ rotate: 180, scale: 1.1 }}
@@ -67,7 +67,7 @@ export default function OnboardingSelectionPage() {
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-4xl mx-auto px-6 flex flex-col justify-center relative z-10 -mt-8">
+            <main className="flex-1 w-full max-w-4xl mx-auto px-6 py-12 flex flex-col justify-center relative z-10">
                 {/* Hero HUD */}
                 <div className="flex flex-col items-center text-center space-y-4 mb-10">
                     <motion.div
@@ -207,8 +207,8 @@ function SelectionCard({ title, desc, icon, tags, onClick, isDark, type, isSelec
                 isSelected
                     ? (isDark ? "bg-slate-800/90 backdrop-blur-none" : "bg-white backdrop-blur-none")
                     : (isDark
-                        ? "bg-slate-900/60 backdrop-blur-3xl"
-                        : "bg-white/80 backdrop-blur-3xl shadow-xl shadow-slate-200/50"),
+                        ? "bg-slate-900/60 backdrop-blur-xl"
+                        : "bg-white/80 backdrop-blur-xl shadow-xl shadow-slate-200/50"),
                 glowClass
             )}>
 

@@ -68,20 +68,20 @@ export default function MeetingChatPage() {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="text-center space-y-8 p-12 rounded-[3.5rem] bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 backdrop-blur-3xl shadow-2xl dark:shadow-[0_0_100px_rgba(0,0,0,0.5)] max-w-xl w-full"
+        className="text-center space-y-8 p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 backdrop-blur-3xl shadow-2xl dark:shadow-[0_0_100px_rgba(0,0,0,0.5)] max-w-xl w-full"
       >
-        <div className="w-24 h-24 bg-blue-500/10 border border-blue-500/20 rounded-[2.5rem] flex items-center justify-center mx-auto text-blue-600 dark:text-blue-500 shadow-xl dark:shadow-[0_0_40px_rgba(59,130,246,0.2)]">
-          <MessageSquare className="w-12 h-12" />
+        <div className="w-16 h-16 md:w-24 md:h-24 bg-blue-500/10 border border-blue-500/20 rounded-[1.8rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto text-blue-600 dark:text-blue-500 shadow-xl dark:shadow-[0_0_40px_rgba(59,130,246,0.2)]">
+          <MessageSquare className="w-8 h-8 md:w-12 md:h-12" />
         </div>
         <div className="space-y-3">
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Meeting Chat</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px] max-w-[280px] mx-auto leading-loose">
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Meeting Chat</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px] max-w-[280px] mx-auto leading-loose text-balance">
             Unlock Meeting Insights. Your chat interactions and summary arise here.
           </p>
         </div>
         <Button
           onClick={() => router.push("/dashboard")}
-          className="bg-blue-600 hover:bg-blue-500 text-white rounded-[1.8rem] h-16 px-12 font-bold text-lg shadow-xl shadow-blue-500/30 transition-all hover:scale-105 active:scale-95"
+          className="bg-blue-600 hover:bg-blue-500 text-white rounded-[1.5rem] md:rounded-[1.8rem] h-12 md:h-16 px-6 md:px-12 font-bold text-sm md:text-lg shadow-xl shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 w-full md:w-auto"
         >
           Return to Command Center
         </Button>

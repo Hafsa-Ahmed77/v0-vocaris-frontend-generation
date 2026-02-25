@@ -133,13 +133,13 @@ export function UpcomingMeetings({ items }: { items: Meeting[] }) {
                 )}
 
                 {/* Footer row */}
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 pt-3 border-t border-slate-50 gap-4">
                   {hostName ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <div className={cn("w-2.5 h-2.5 rounded-full shrink-0 ring-4 ring-slate-50/50", platformColor)} />
-                      <span className="text-[11px] text-slate-500 font-bold tracking-tight truncate max-w-[140px]">{hostName}</span>
+                      <span className="text-[11px] text-slate-500 font-bold tracking-tight truncate max-w-[140px] md:max-w-none">{hostName}</span>
                       {m.meeting_url && (
-                        <a href={m.meeting_url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-blue-500 transition-all">
+                        <a href={m.meeting_url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-blue-500 transition-all shrink-0">
                           <ExternalLink className="size-3.5" />
                         </a>
                       )}
@@ -152,7 +152,7 @@ export function UpcomingMeetings({ items }: { items: Meeting[] }) {
                     onClick={() => isEnabled ? handleDisableAutoJoin(m.id) : handleAutoJoin(m.id)}
                     disabled={isLoading}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm",
+                      "flex items-center justify-center gap-2 px-6 py-2.5 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm w-full sm:w-auto",
                       isEnabled
                         ? "bg-green-50 text-green-600 border-green-100 hover:bg-green-100 hover:shadow"
                         : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700 hover:shadow-md active:translate-y-0"

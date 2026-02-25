@@ -3,10 +3,13 @@
 import { Sidebar } from "@/components/layout/sidebar"
 import { Topbar } from "@/components/layout/topbar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Button } from "@/components/ui/button"
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { Menu } from "lucide-react"
+import { Menu, Home } from "lucide-react"
+import { motion } from "framer-motion"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -85,13 +88,38 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              {pathname === "/dashboard" && (
+                <motion.div
+                  whileHover={{ scale: 1.1, y: -1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="icon"
+                    className="relative rounded-xl w-9 h-9 sm:w-10 sm:h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-blue-500/20 text-slate-600 dark:text-blue-400 shadow-sm hover:shadow-blue-500/20 hover:border-blue-500 transition-all group overflow-hidden"
+                  >
+                    <Link href="/">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 group-hover:from-blue-500/20 group-hover:to-cyan-500/20 transition-all" />
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.3)_0%,transparent_70%)] blur-md transition-opacity" />
+                      <Home className="size-4 sm:size-5 relative z-10 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] transition-all" />
+                    </Link>
+                  </Button>
+                </motion.div>
+              )}
               <ThemeToggle />
-              <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
-              <div className="hidden sm:flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live</span>
-              </div>
+              <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 hidden md:block" />
+
+              {/* Conditional Indicator or Action Portal */}
+              {pathname === "/meeting/scrum" ? (
+                <div id="scrum-header-action" className="flex items-center min-w-0" />
+              ) : (
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live</span>
+                </div>
+              )}
             </div>
           </header>
 

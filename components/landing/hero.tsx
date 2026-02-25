@@ -8,13 +8,12 @@ import { ArrowRight, Sparkles } from "lucide-react"
 export function Hero() {
   return (
     <section className="relative min-h-screen overflow-hidden flex items-center">
-      <div className="absolute inset-0 -z-10">
+      <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-pulse" />
-<div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" />
-
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 py-20 lg:py-32 w-full">
+      <div className="relative mx-auto max-w-7xl px-4 py-20 lg:py-32 w-full z-20">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -67,66 +66,66 @@ export function Hero() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </Button>
-          
-          </motion.div>
+
+            </motion.div>
           </motion.div>
 
           {/* Right Column — Robot Illustration */}
-{/* Robot Listening Animation */}
-<motion.div
-  className="relative flex justify-center items-center"
-  initial={{ opacity: 0, scale: 0.9 }}
-  animate={{ opacity: 1, scale: 1 }}
-  transition={{ duration: 0.8, delay: 0.4 }}
->
-  {/* Pulsing Rings */}
-  <motion.div
-    className="absolute rounded-full border border-cyan-400/40"
-    style={{ width: 420, height: 420 }}
-    animate={{
-      scale: [1, 1.3, 1],
-      opacity: [0.6, 0.2, 0.6],
-    }}
-    transition={{
-      duration: 3,
-      repeat: Infinity,
-      ease: "easeInOut",
-    }}
-  />
-  <motion.div
-    className="absolute rounded-full border border-blue-400/30"
-    style={{ width: 480, height: 480 }}
-    animate={{
-      scale: [1.1, 1.4, 1.1],
-      opacity: [0.3, 0.1, 0.3],
-    }}
-    transition={{
-      duration: 3.5,
-      repeat: Infinity,
-      ease: "easeInOut",
-    }}
-  />
+          {/* Robot Listening Animation */}
+          <motion.div
+            className="relative flex justify-center items-center"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            {/* Pulsing Rings */}
+            <motion.div
+              className="absolute rounded-full border border-cyan-400/40 pointer-events-none"
+              style={{ width: 420, height: 420 }}
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.6, 0.2, 0.6],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            <motion.div
+              className="absolute rounded-full border border-blue-400/30 pointer-events-none"
+              style={{ width: 480, height: 480 }}
+              animate={{
+                scale: [1.1, 1.4, 1.1],
+                opacity: [0.3, 0.1, 0.3],
+              }}
+              transition={{
+                duration: 3.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
 
-  {/* Robot Image */}
-  <motion.img
-    src="/robot-ai.png"
-    alt="AI Voice Assistant Robot"
-    className="relative w-[400px] md:w-[480px] drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]"
-    animate={{
-      y: [0, -12, 0],
-      filter: [
-        "drop-shadow(0 0 15px rgba(59,130,246,0.4))",
-        "drop-shadow(0 0 25px rgba(59,130,246,0.7))",
-        "drop-shadow(0 0 15px rgba(59,130,246,0.4))",
-      ],
-    }}
-    transition={{
-      duration: 4,
-      repeat: Infinity,
-      ease: "easeInOut",
-    }}
-  />
-</motion.div>
+            {/* Robot Image */}
+            <motion.img
+              src="/robot-ai.png"
+              alt="AI Voice Assistant Robot"
+              className="relative w-[400px] md:w-[480px] drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]"
+              animate={{
+                y: [0, -12, 0],
+                filter: [
+                  "drop-shadow(0 0 15px rgba(59,130,246,0.4))",
+                  "drop-shadow(0 0 25px rgba(59,130,246,0.7))",
+                  "drop-shadow(0 0 15px rgba(59,130,246,0.4))",
+                ],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+          </motion.div>
 
 
         </div>

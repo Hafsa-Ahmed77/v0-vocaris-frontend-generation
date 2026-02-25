@@ -214,7 +214,7 @@ export default function OnboardingConversation() {
 
   return (
     <div className={cn(
-      "h-screen transition-colors duration-500 flex flex-col relative overflow-hidden font-sans",
+      "min-h-dvh transition-colors duration-500 flex flex-col relative font-sans",
       themeClasses.selection,
       isDarkMode ? "bg-[#161e2e] text-white" : "bg-slate-50 text-slate-900"
     )}>
@@ -235,7 +235,7 @@ export default function OnboardingConversation() {
 
       {/* Header HUD */}
       <header className={cn(
-        "relative z-50 w-full h-24 border-b flex items-center justify-between px-8 backdrop-blur-3xl",
+        "relative z-50 w-full h-20 md:h-24 border-b flex items-center justify-between px-6 md:px-8 backdrop-blur-3xl",
         isDarkMode ? "border-white/5 bg-slate-900/40" : "border-slate-200 bg-white/40"
       )}>
         <div className="flex items-center gap-6">
@@ -298,7 +298,7 @@ export default function OnboardingConversation() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full flex flex-col md:flex-row relative z-10 overflow-hidden">
+      <main className="flex-1 max-w-7xl mx-auto w-full flex flex-col md:flex-row relative z-10">
         <AnimatePresence mode="wait">
           {(status !== "connected" || isInterrupted) ? (
             <motion.div
@@ -339,7 +339,7 @@ export default function OnboardingConversation() {
                     {isInterrupted ? "Uplink Terminated Prematurely" : "Neural Profile Sync"}
                   </span>
                 </div>
-                <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none uppercase">
+                <h1 className="text-4xl md:text-7xl font-black tracking-tighter leading-none uppercase">
                   {isInterrupted ? "Connection \n Interrupted" : "Voice Identity \n Extraction"}
                 </h1>
                 <p className={cn(
@@ -411,10 +411,10 @@ export default function OnboardingConversation() {
               key="chat"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex-1 flex flex-col md:flex-row h-full overflow-hidden"
+              className="flex-1 flex flex-col md:flex-row md:h-full"
             >
               {/* Visualizer Left HUD - Responsive Clamped Height */}
-              <div className="w-full md:w-[400px] h-[35vh] md:h-full p-6 md:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20 backdrop-blur-md z-20">
+              <div className="w-full md:w-[400px] md:h-full p-6 md:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20 backdrop-blur-md z-20 shrink-0">
                 <div className="space-y-6">
                   <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", themeClasses.bgAlpha, themeClasses.textLight)}>
@@ -505,9 +505,9 @@ export default function OnboardingConversation() {
               </div>
 
               {/* HUD Chat Panels Right */}
-              <div className="flex-1 flex flex-col h-full overflow-hidden">
-                <ScrollArea className="h-full w-full" ref={scrollAreaRef}>
-                  <div className="p-10 pt-20 space-y-8 max-w-3xl mx-auto pb-40">
+              <div className="flex-1 flex flex-col md:h-full">
+                <ScrollArea className="flex-1 md:h-full w-full" ref={scrollAreaRef}>
+                  <div className="p-6 md:p-10 pt-10 md:pt-20 space-y-8 max-w-3xl mx-auto pb-40">
                     {transcripts.length === 0 && (
                       <div className="flex flex-col items-center space-y-4 opacity-10 py-12">
                         <Network className="w-12 h-12" />

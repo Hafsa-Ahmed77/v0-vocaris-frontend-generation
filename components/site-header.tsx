@@ -17,7 +17,7 @@ export function SiteHeader() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-50 w-full">
+    <header className="sticky top-0 z-[100] w-full">
       <div className="glass border-b border-white/10 bg-gradient-to-r from-[#0A0F1C]/90 via-[#111827]/80 to-[#1E293B]/90 backdrop-blur-xl shadow-[0_0_25px_rgba(59,130,246,0.15)]">
 
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
@@ -58,7 +58,7 @@ export function SiteHeader() {
               <Button
                 asChild
                 size="sm"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-indigo-500/20 transition-all font-bold px-6 rounded-xl"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-indigo-500/20 transition-all font-bold px-6 rounded-xl pointer-events-auto"
               >
                 <Link href="/dashboard">Dashboard</Link>
               </Button>

@@ -26,7 +26,7 @@ interface ClickUpIntegrationProps {
 }
 
 export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationProps) {
-    const [step, setStep] = useState<"auth" | "selection">("auth")
+    const [step, setStep] = useState<"auth" | "selection" | "success">("auth")
     const [token, setToken] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
@@ -41,12 +41,23 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
     const [selectedListId, setSelectedListId] = useState<string>("")
     const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("")
 
+    // Load persistent token on mount
+    useEffect(() => {
+        const savedToken = localStorage.getItem("vocaris_clickup_token")
+        if (savedToken) {
+            console.log("💾 Found saved ClickUp token, auto-loading...")
+            setToken(savedToken)
+        }
+    }, [])
+
     useEffect(() => {
         // Listen for message from popup (if backend supports it)
         const handleMessage = (event: MessageEvent) => {
             if (event.data?.type === "CLICKUP_AUTH_SUCCESS" && event.data?.token) {
                 console.log("📨 Received token via postMessage")
-                setToken(event.data.token)
+                const newToken = event.data.token
+                setToken(newToken)
+                localStorage.setItem("vocaris_clickup_token", newToken)
             }
         }
         window.addEventListener("message", handleMessage)
@@ -57,6 +68,10 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
         if (token && step === "auth") {
             // Auto-trigger fetch when token is set
             fetchHierarchy()
+        }
+        // Sync token to persistent storage whenever it changes
+        if (token.trim()) {
+            localStorage.setItem("vocaris_clickup_token", token.trim())
         }
     }, [token])
 
@@ -81,6 +96,7 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
             if (localToken) {
                 console.log("💎 Token detected via localStorage bridge!", localToken)
                 setToken(localToken)
+                localStorage.setItem("vocaris_clickup_token", localToken)
                 localStorage.removeItem("clickup_active_token")
                 if (popup && !popup.closed) popup.close()
                 window.clearInterval(pollTimer)
@@ -96,6 +112,7 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
                         if (urlToken) {
                             console.log("🔍 Detected token in popup URL!")
                             setToken(urlToken)
+                            localStorage.setItem("vocaris_clickup_token", urlToken)
                             popup.close()
                             window.clearInterval(pollTimer)
                         }
@@ -157,6 +174,8 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
         } catch (err) {
             console.error(err)
             setError("Invalid token or connection failed.")
+            // If it's likely an auth error, clear the token to allow retry
+            localStorage.removeItem("vocaris_clickup_token")
         } finally {
             setLoading(false)
         }
@@ -193,18 +212,19 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
     }, [activeTeamId, activeSpaceId, activeFolderId, resolvedListId])
 
     return (
-        <Card className="w-full max-w-lg mx-auto bg-slate-900 border-slate-800 text-slate-100 shadow-2xl">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+        <Card className="w-full max-w-md mx-auto bg-slate-900 border-slate-800 text-slate-100 shadow-2xl flex flex-col max-h-[90vh]">
+            <CardHeader className="p-4 sm:p-5 shrink-0 border-b border-white/5">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                     <img src="https://clickup.com/landing/images/logo-clickup_color.svg" alt="ClickUp" className="w-5 h-5 filter brightness-0 invert" />
                     Connect ClickUp
                 </CardTitle>
-                <CardDescription className="text-slate-400">
-                    {step === "auth" ? "Authorize Vocaris to access your ClickUp tickets." : "Select where to push these tickets."}
+                <CardDescription className="text-slate-400 text-[10px] sm:text-xs">
+                    {step === "auth" ? "Authorize access to your ClickUp tickets." :
+                        step === "selection" ? "Select target for ticket push." : "Push completed successfully."}
                 </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1">
                 {error && (
                     <div className="bg-red-900/20 border border-red-900/50 p-3 rounded-md text-red-500 text-sm flex items-center gap-2">
                         <AlertCircle className="w-4 h-4" /> {error}
@@ -220,31 +240,31 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
 
                         {!authWindow ? (
                             <Button
-                                className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-black text-lg rounded-2xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]"
+                                className="w-full h-12 sm:h-14 bg-blue-600 hover:bg-blue-500 text-white font-black text-base sm:text-lg rounded-2xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]"
                                 onClick={handleAuth}
                             >
-                                Start ClickUp Authorization
+                                Start Authorization
                             </Button>
                         ) : (
-                            <div className="flex flex-col items-center justify-center p-8 rounded-[2rem] bg-blue-500/5 border border-white/5 space-y-4">
+                            <div className="flex flex-col items-center justify-center p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2rem] bg-blue-500/5 border border-white/5 space-y-4">
                                 <div className="relative">
                                     <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
-                                    <Loader2 className="w-12 h-12 animate-spin text-blue-500 relative z-10" />
+                                    <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 animate-spin text-blue-500 relative z-10" />
                                 </div>
                                 <div className="text-center">
-                                    <h4 className="font-black text-white">Detecting Connection...</h4>
-                                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-1">Complete the authorization in the popup</p>
+                                    <h4 className="font-black text-white text-sm sm:text-base">Detecting Connection...</h4>
+                                    <p className="text-[8px] sm:text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-1 text-balance px-2">Complete authorization in the popup</p>
                                 </div>
                                 <div className="flex flex-col gap-2 w-full">
-                                    <div className="py-4 text-center">
-                                        <div className="flex items-center justify-center gap-2 text-blue-400 font-bold text-sm">
-                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                    <div className="py-2 sm:py-4 text-center">
+                                        <div className="flex items-center justify-center gap-2 text-blue-400 font-bold text-xs sm:text-sm">
+                                            <Loader2 className="w-3 h-3 sm:w-4 h-4 animate-spin" />
                                             Authenticating...
                                         </div>
                                     </div>
                                     <Button
                                         variant="link"
-                                        className="text-[10px] text-slate-500 font-bold uppercase tracking-wider"
+                                        className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider"
                                         onClick={() => {
                                             if (authWindow && !authWindow.closed) authWindow.close()
                                             setAuthWindow(null)
@@ -358,9 +378,9 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
                         {/* LIST — only show if more than 1 */}
                         {(activeFolderId || activeSpaceId) && allLists.length > 1 && (
                             <div className="space-y-2">
-                                <Label>Select List</Label>
+                                <Label className="text-xs">Select List</Label>
                                 <Select value={selectedListId} onValueChange={setSelectedListId}>
-                                    <SelectTrigger className="bg-slate-950 border-slate-700">
+                                    <SelectTrigger className="bg-slate-950 border-slate-700 h-10 text-sm">
                                         <SelectValue placeholder="Select Target List" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -371,25 +391,62 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
                                 </Select>
                             </div>
                         )}
+                    </div>
+                )}
 
-
+                {step === "success" && (
+                    <div className="py-8 sm:py-12 flex flex-col items-center text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-[0_0_50px_rgba(16,185,129,0.2)]">
+                            <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-xl sm:text-2xl font-black text-white px-2">Success!</h3>
+                            <p className="text-xs sm:text-sm text-slate-400 max-w-[280px] sm:max-w-xs mx-auto">
+                                All scrum tickets have been successfully pushed to your ClickUp list.
+                            </p>
+                        </div>
                     </div>
                 )}
             </CardContent>
 
-            <CardFooter className="flex justify-between border-t border-slate-800 pt-4">
-                <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between border-t border-slate-800 p-4 sm:p-6 gap-3">
+                <Button
+                    variant="ghost"
+                    onClick={onCancel}
+                    className="w-full sm:w-auto text-slate-400 hover:text-white hover:bg-white/5"
+                >
+                    {step === "success" ? "Close" : "Cancel"}
+                </Button>
 
-                {step === "selection" ? (
+                {step === "selection" && (
                     <Button
-                        onClick={() => onCommit(resolvedListId, token, selectedAssigneeId)}
+                        onClick={async () => {
+                            setLoading(true)
+                            try {
+                                await onCommit(resolvedListId, token, selectedAssigneeId)
+                                setStep("success")
+                            } catch (e) {
+                                // Error is handled by top-level toast/error state
+                            } finally {
+                                setLoading(false)
+                            }
+                        }}
                         disabled={!resolvedListId || loading}
-                        className="bg-[#7b68ee] hover:bg-[#6c5ce7] text-white"
+                        className="bg-[#7b68ee] hover:bg-[#6c5ce7] text-white font-bold w-full sm:w-auto h-11 sm:h-10 px-8"
                     >
                         {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Push Tickets
                     </Button>
-                ) : null}
+                )}
+
+                {step === "success" && (
+                    <Button
+                        onClick={onCancel}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold w-full sm:w-auto h-11 sm:h-10 px-8"
+                    >
+                        Great!
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     )
