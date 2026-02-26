@@ -131,6 +131,13 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Hide scrollbars globally – scrolling still works */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
   }
 
   body {
@@ -138,11 +145,12 @@
   }
 }
 
-/* Hide scrollbar utility */
+/* Keep .no-scrollbar utility for explicit use */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react"
+import { Loader2, CheckCircle2, AlertCircle, X, Sparkles } from "lucide-react"
 
 type ClickUpHierarchy = {
     user: any
@@ -212,10 +212,20 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
     }, [activeTeamId, activeSpaceId, activeFolderId, resolvedListId])
 
     return (
-        <Card className="w-full max-w-md mx-auto bg-slate-900 border-slate-800 text-slate-100 shadow-2xl flex flex-col max-h-[90vh]">
-            <CardHeader className="p-4 sm:p-5 shrink-0 border-b border-white/5">
+        <Card className="w-[95vw] sm:w-full max-w-md mx-auto bg-slate-900 border-slate-800 text-slate-100 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh]">
+            <CardHeader className="p-4 sm:p-5 shrink-0 border-b border-white/5 relative">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onCancel}
+                    className="absolute right-2 top-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-full w-8 h-8"
+                >
+                    <X className="w-4 h-4" />
+                </Button>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <img src="https://clickup.com/landing/images/logo-clickup_color.svg" alt="ClickUp" className="w-5 h-5 filter brightness-0 invert" />
+                    <div className="w-6 h-6 flex items-center justify-center bg-white rounded-md p-1">
+                        <img src="https://clickup.com/landing/images/logo-clickup_color.svg" alt="ClickUp" className="w-full h-full object-contain" />
+                    </div>
                     Connect ClickUp
                 </CardTitle>
                 <CardDescription className="text-slate-400 text-[10px] sm:text-xs">
@@ -232,68 +242,57 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
                 )}
 
                 {step === "auth" && (
-                    <div className="space-y-6 py-4">
-                        <div className="text-sm text-slate-400 text-center px-4">
-                            Click the button below to link your ClickUp account.
-                            Vocaris will automatically detect your connection.
-                        </div>
-
+                    <div className="space-y-8 py-6">
                         {!authWindow ? (
-                            <Button
-                                className="w-full h-12 sm:h-14 bg-blue-600 hover:bg-blue-500 text-white font-black text-base sm:text-lg rounded-2xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]"
-                                onClick={handleAuth}
-                            >
-                                Start Authorization
-                            </Button>
+                            <div className="space-y-6 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+                                <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-lg">
+                                    <Sparkles className="w-8 h-8 text-blue-500 animate-pulse" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-black text-white tracking-tight">Sync Workspace</h3>
+                                    <p className="text-xs text-slate-400 max-w-[240px] mx-auto leading-relaxed">
+                                        Link your ClickUp account to automatically sync scrum tickets.
+                                    </p>
+                                </div>
+                                <Button
+                                    className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-black text-base rounded-2xl shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] group"
+                                    onClick={handleAuth}
+                                >
+                                    <span className="mr-2">Continue to ClickUp</span>
+                                    <X className="w-4 h-4 rotate-45 group-hover:translate-x-1 transition-transform" />
+                                </Button>
+                            </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2rem] bg-blue-500/5 border border-white/5 space-y-4">
+                            <div className="flex flex-col items-center justify-center p-6 sm:p-10 rounded-[2.5rem] bg-blue-500/5 border border-white/5 space-y-8 animate-in zoom-in-95 duration-500 text-center">
                                 <div className="relative">
-                                    <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
-                                    <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 animate-spin text-blue-500 relative z-10" />
-                                </div>
-                                <div className="text-center">
-                                    <h4 className="font-black text-white text-sm sm:text-base">Detecting Connection...</h4>
-                                    <p className="text-[8px] sm:text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-1 text-balance px-2">Complete authorization in the popup</p>
-                                </div>
-                                <div className="flex flex-col gap-2 w-full">
-                                    <div className="py-2 sm:py-4 text-center">
-                                        <div className="flex items-center justify-center gap-2 text-blue-400 font-bold text-xs sm:text-sm">
-                                            <Loader2 className="w-3 h-3 sm:w-4 h-4 animate-spin" />
-                                            Authenticating...
-                                        </div>
+                                    <div className="absolute inset-[-10px] rounded-full bg-blue-500/20 animate-ping opacity-50" />
+                                    <div className="w-20 h-20 rounded-full bg-slate-900 border border-blue-500/30 flex items-center justify-center relative z-10 shadow-2xl">
+                                        <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
                                     </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="text-lg font-black text-white tracking-tight">Waiting for Sync...</h4>
+                                    <p className="text-[10px] uppercase font-black text-slate-500 tracking-[0.3em]">Detection Engine Active</p>
+                                </div>
+                                <div className="w-full space-y-4">
+                                    <p className="text-[11px] text-slate-400 font-medium px-4">
+                                        Please complete the authorization in the secure popup window.
+                                    </p>
                                     <Button
-                                        variant="link"
-                                        className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-[10px] text-rose-500 font-bold uppercase tracking-widest hover:bg-rose-500/10 hover:text-rose-400"
                                         onClick={() => {
                                             if (authWindow && !authWindow.closed) authWindow.close()
                                             setAuthWindow(null)
                                             setLoading(false)
                                         }}
                                     >
-                                        Cancel & Restart
+                                        Cancel Protocol
                                     </Button>
                                 </div>
                             </div>
                         )}
-
-                        <div className="pt-4 border-t border-white/5">
-                            <details className="group cursor-pointer">
-                                <summary className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center list-none hover:text-slate-400 transition-colors">
-                                    Manual Token Entry (Fallback)
-                                </summary>
-                                <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2">
-                                    <Label htmlFor="token" className="text-xs text-slate-500">Access Token</Label>
-                                    <Input
-                                        id="token"
-                                        value={token}
-                                        onChange={(e) => setToken(e.target.value)}
-                                        placeholder="Paste token here if auto-detect fails..."
-                                        className="bg-white/5 border-white/10 rounded-xl text-xs h-10"
-                                    />
-                                </div>
-                            </details>
-                        </div>
                     </div>
                 )}
 

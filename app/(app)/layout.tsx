@@ -65,7 +65,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <div className="grid min-h-dvh lg:grid-cols-[280px_1fr]">
         {/* Sidebar container with mobile drawer support */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-[60] w-[280px] transform border-r transition-transform duration-300 ease-in-out lg:relative lg:block lg:translate-x-0 bg-[#0f172a]",
+          "fixed inset-y-0 left-0 z-[60] w-[280px] transform border-r transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:block lg:translate-x-0 bg-[#0f172a]",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <Sidebar onClose={() => setIsSidebarOpen(false)} isMobile={true} />

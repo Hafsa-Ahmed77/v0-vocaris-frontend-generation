@@ -57,7 +57,7 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-8">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-8 no-scrollbar">
         <div>
           <p className="px-2 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Workspace</p>
           <nav className="space-y-1">

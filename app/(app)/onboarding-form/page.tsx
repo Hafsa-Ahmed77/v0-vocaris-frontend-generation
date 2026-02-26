@@ -131,7 +131,7 @@ export default function OnboardingFormPage() {
 
     return (
         <div className={cn(
-            "min-h-dvh transition-colors duration-700 flex flex-col relative font-sans",
+            "min-h-dvh max-w-[100vw] overflow-hidden transition-colors duration-700 flex flex-col relative font-sans",
             themeClasses.selection,
             isDarkMode ? "bg-[#161e2e] text-white" : "bg-slate-50 text-slate-900"
         )}>
