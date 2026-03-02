@@ -1,9 +1,0 @@
-{
-    "framework": "nextjs",
-    "buildCommand": "next build",
-    "installCommand": "npm install",
-    "regions": [
-        "cle1"
-    ],
-    "crons": []
-}
