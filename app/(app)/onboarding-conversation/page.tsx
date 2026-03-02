@@ -40,6 +40,8 @@ export default function OnboardingConversation() {
   const [mappingProgress, setMappingProgress] = useState(0)
   const [timeLeft, setTimeLeft] = useState(60)
   const [isInterrupted, setIsInterrupted] = useState(false)
+  const [isGracefulEnd, setIsGracefulEnd] = useState(false)
+  const [hasStartedTalking, setHasStartedTalking] = useState(false)
 
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [theme, setTheme] = useState<"purple" | "blue">("blue")
@@ -48,6 +50,7 @@ export default function OnboardingConversation() {
   const recorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const timerStartedRef = useRef(false)
 
   // Initialize theme from URL or localStorage
   useEffect(() => {
@@ -79,10 +82,14 @@ export default function OnboardingConversation() {
   }
 
   // Optimized Precision Timer & Mapping Sync
+  // Precision Timer & Mapping Sync
   useEffect(() => {
     let interval: any
+    // Start interval as soon as connected, but only decrement if hasStartedTalking is true
     if (status === "connected" && timeLeft > 0) {
       interval = setInterval(() => {
+        if (!hasStartedTalking) return // Wait for first message
+
         setTimeLeft(prev => {
           if (prev <= 0) {
             clearInterval(interval)
@@ -93,12 +100,18 @@ export default function OnboardingConversation() {
       }, 1000)
     }
     return () => clearInterval(interval)
-  }, [status, timeLeft > 0]) // Re-run if status changes or timer reaches 0
+  }, [status, hasStartedTalking, timeLeft === 0]) // Sync on status, start, or completion
 
   // Sync Mapping Progress to timeLeft
+  // Sync Mapping Progress to timeLeft (based on 60s active window)
   useEffect(() => {
-    setMappingProgress(Math.floor(((60 - timeLeft) / 60) * 100))
-  }, [timeLeft])
+    if (!hasStartedTalking) {
+      setMappingProgress(0)
+      return
+    }
+    const elapsed = 60 - timeLeft
+    setMappingProgress(Math.min(100, Math.floor((elapsed / 60) * 100)))
+  }, [timeLeft, hasStartedTalking])
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -165,15 +178,56 @@ export default function OnboardingConversation() {
             playAudio(msg.data.audio)
           }
           if (msg.event === "message" && msg.data) {
-            setTranscripts((p) => [...p, { speaker: msg.data.type, text: msg.data.text }])
+            // 🛡️ Deduplication check (Robust: trim and normalize)
+            const cleanText = msg.data.text?.trim()
+            setTranscripts((p) => {
+              const last = p[p.length - 1]
+              if (last && last.text.trim() === cleanText && last.speaker === msg.data.type) {
+                return p
+              }
+              return [...p, { speaker: msg.data.type, text: msg.data.text }]
+            })
+
+            // Trigger talking state on first message
+            if (!timerStartedRef.current) {
+              console.log("[Onboarding] First message received. Triggering timer.")
+              timerStartedRef.current = true
+              setHasStartedTalking(true)
+            }
+
+            // 🧠 Smart Sync: Parse message for time remaining hints
+            const timeMatch = msg.data.text.match(/(\d+)\s*(sec|second)/i)
+            if (timeMatch && timeMatch[1]) {
+              const newTime = parseInt(timeMatch[1], 10)
+              console.log(`[TimerSync] Backend hinted at ${newTime}s remaining. Syncing...`)
+              setTimeLeft(newTime)
+            }
+
+            // 👋 Goodbye/Completion Detection
+            const speakerType = msg.data.type?.toLowerCase()
+            const isAgent = speakerType !== "user"
+
+            if (isAgent) {
+              const text = msg.data.text.toLowerCase()
+              const goodbyePhrases = [
+                "thank you", "goodbye", "bye", "see you",
+                "session over", "conversation ended",
+                "thanks for sharing", "thanks for the meeting",
+                "thanks for the conversation"
+              ]
+              if (goodbyePhrases.some(phrase => text.includes(phrase))) {
+                console.log("[Onboarding] Goodbye/Completion detected. Marking as graceful end.")
+                setIsGracefulEnd(true)
+              }
+            }
           }
         } catch (err) {
           console.error("WebSocket message parse error:", err)
         }
       }
       ws.onclose = () => {
-        // If the websocket closes before 60 seconds and we didn't end it manually, it's an interruption
-        if (timeLeft > 0 && status === "connected") {
+        // Only set as interrupted if it wasn't a graceful end and significant time was left
+        if (!isGracefulEnd && timeLeft > 10 && status === "connected") {
           setIsInterrupted(true)
         }
         setStatus("disconnected")
@@ -196,12 +250,18 @@ export default function OnboardingConversation() {
   const resetSession = () => {
     setStatus("disconnected")
     setIsInterrupted(false)
+    setIsGracefulEnd(false)
+    setHasStartedTalking(false)
+    timerStartedRef.current = false
     setTranscripts([])
     setTimeLeft(60)
   }
 
   const toggleMic = () => {
-    if (!recorderRef.current || agentSpeaking || timeLeft === 0) return
+    if (!recorderRef.current || agentSpeaking) return
+    // Allow mic as long as we are connected, even if timer is 0 (grace period)
+    if (status !== "connected") return
+
     if (!isRecording) {
       audioChunksRef.current = []
       recorderRef.current.start()
@@ -300,7 +360,7 @@ export default function OnboardingConversation() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full flex flex-col md:flex-row relative z-10">
         <AnimatePresence mode="wait">
-          {(status !== "connected" || isInterrupted) ? (
+          {(status === "disconnected" && transcripts.length === 0) || isInterrupted ? (
             <motion.div
               key={isInterrupted ? "interrupted" : "entry"}
               initial={{ opacity: 0 }}
@@ -476,22 +536,24 @@ export default function OnboardingConversation() {
                 <div className="space-y-4">
                   <Button
                     onClick={toggleMic}
-                    disabled={agentSpeaking || timeLeft === 0}
+                    disabled={agentSpeaking || (timeLeft === 0 && status !== "connected")}
                     className={cn(
                       "w-full h-24 rounded-[2rem] font-black text-xl flex flex-col items-center justify-center gap-2 transition-all shadow-2xl",
                       isRecording
-                        ? "bg-red-600 border border-red-400 shadow-[0_0_30px_rgba(239,68,68,0.3)] text-white"
-                        : timeLeft === 0
-                          ? "bg-slate-800 border-white/5 text-slate-500 cursor-not-allowed"
-                          : cn(themeClasses.bg, themeClasses.bgHover, "text-white border shadow-lg", theme === 'purple' ? "border-purple-400 shadow-purple-500/20" : "border-blue-400 shadow-blue-500/20")
+                        ? "bg-red-600 border border-red-400 shadow-[0_0_30_rgba(239,68,68,0.3)] text-white"
+                        : (status === "disconnected" && transcripts.length > 0)
+                          ? "bg-emerald-600/20 border-emerald-500/30 text-emerald-500 cursor-default"
+                          : (timeLeft === 0 && status !== "connected")
+                            ? "bg-slate-800 border-white/5 text-slate-500 cursor-not-allowed"
+                            : cn(themeClasses.bg, themeClasses.bgHover, "text-white border shadow-lg", theme === 'purple' ? "border-purple-400 shadow-purple-500/20" : "border-blue-400 shadow-blue-500/20")
                     )}
                   >
                     <div className="flex items-center gap-4">
                       {isRecording ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
-                      {timeLeft === 0 ? "SESSION ENDED" : isRecording ? "MUTE" : "TALK NOW"}
+                      {(status === "disconnected" && transcripts.length > 0) ? "SESSION COMPLETED" : (timeLeft === 0 && status !== "connected") ? "SESSION ENDED" : isRecording ? "MUTE" : "TALK NOW"}
                     </div>
                     <span className="text-[8px] font-black tracking-[0.3em] uppercase opacity-70">
-                      {timeLeft === 0 ? "Neural profile locked" : "Push to Command"}
+                      {(status === "disconnected" && transcripts.length > 0) ? "Neural profile synchronized" : (timeLeft === 0 && status !== "connected") ? "Neural profile locked" : "Push to Command"}
                     </span>
                   </Button>
 
@@ -576,7 +638,7 @@ export default function OnboardingConversation() {
 
       {/* Finishing Action - Only shows when 1-minute briefing is 100% complete */}
       <AnimatePresence>
-        {status === "connected" && timeLeft === 0 && (
+        {status === "disconnected" && transcripts.length > 3 && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

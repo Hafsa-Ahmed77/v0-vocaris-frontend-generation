@@ -114,7 +114,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[#1E293B] dark:text-white font-bold text-xs backdrop-blur-sm shadow-sm dark:shadow-none">
               <MonitorPlay className="size-3.5 text-slate-400 dark:text-azure-400" />
-              {stats?.total_sessions || 0} Records
+              {statsLoading ? "—" : `${stats?.total_sessions || 0} Records`}
             </div>
           </div>
         </div>

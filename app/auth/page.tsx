@@ -28,7 +28,7 @@ export default function AuthPage() {
     // Validate existing token — if valid, redirect to onboarding selection
     verifyToken().then((valid) => {
       if (valid) {
-        router.replace("/onboarding-selection")
+        router.replace("/dashboard")
       } else {
         // Token is stale — clear it and show login
         localStorage.removeItem("token")
