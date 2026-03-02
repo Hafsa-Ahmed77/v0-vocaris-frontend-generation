@@ -26,7 +26,7 @@ export default function DashboardPage() {
     if (userStr) {
       try {
         const user = JSON.parse(userStr)
-        setUserName(user.full_name || user.name || "User")
+        setUserName(user.first_name || user.full_name || user.name || "User")
       } catch (e) {
         console.error("Failed to parse user from local storage", e)
       }
@@ -92,73 +92,79 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 p-2 lg:p-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      {/* Welcome Banner (Replacing older header) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white rounded-[2rem] p-6 md:p-8 border border-slate-100 shadow-sm relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-100/50 transition-colors duration-500" />
+      {/* Welcome Banner: Sapphire Duo (Light & Dark) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-gradient-to-br dark:from-[#161E31] dark:to-[#0A0F1E] p-8 border border-[#E0E7FF] dark:border-[#2D3A54] rounded-[2rem] relative overflow-hidden group shadow-xl shadow-blue-500/5 dark:shadow-2xl">
+        {/* Glow Effect (Dark Mode only) */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 dark:bg-cyan-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:bg-blue-500/10 dark:group-hover:bg-cyan-500/15 transition-colors duration-700" />
+
         <div className="relative">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Welcome back, {userName}</h1>
-          <p className="text-slate-500 text-sm mt-1 font-medium italic">"The best way to predict the future is to automate it."</p>
-          <div className="flex items-center gap-4 mt-6">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100/50 text-xs font-bold">
-              <Zap className={cn("size-3.5 fill-blue-600", stats?.active_in_call > 0 && "animate-pulse")} />
-              {statsLoading ? "Scanning..." : `${stats?.active_in_call || 0} Active In-Call`}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="px-2 py-0.5 rounded-md bg-blue-500/10 dark:bg-cyan-500/20 text-blue-600 dark:text-cyan-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20 dark:border-cyan-500/30">
+              Active Session
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-600 rounded-xl border border-green-100/50 text-xs font-bold">
-              <MonitorPlay className="size-3.5 fill-green-600" />
-              {stats?.total_sessions || 0} Briefings Processed
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-cyan-500 animate-pulse" />
+          </div>
+          <h1 className="text-3xl font-black text-[#1E293B] dark:text-white tracking-tight">Welcome, {userName}</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium max-w-md">Your AI intelligence layer is synchronized and ready.</p>
+
+          <div className="flex items-center gap-4 mt-8">
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[#1E293B] dark:text-white font-bold text-xs backdrop-blur-sm shadow-sm dark:shadow-none">
+              <Zap className="size-3.5 fill-blue-500 dark:fill-cyan-500 text-blue-500 dark:text-cyan-500" />
+              {statsLoading ? "Scanning..." : `${stats?.active_in_call || 0} Live Sessions`}
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[#1E293B] dark:text-white font-bold text-xs backdrop-blur-sm shadow-sm dark:shadow-none">
+              <MonitorPlay className="size-3.5 text-slate-400 dark:text-azure-400" />
+              {stats?.total_sessions || 0} Records
             </div>
           </div>
         </div>
 
-        <div className="relative group">
-          <div className="w-12 h-12 rounded-2xl bg-slate-950 flex items-center justify-center text-white shadow-xl shadow-slate-200">
-            <LayoutDashboard className="size-6" />
+        <div className="relative">
+          <div className="w-20 h-20 rounded-2xl bg-slate-50 dark:bg-[#1E293B] flex items-center justify-center text-blue-600 dark:text-cyan-400 border border-slate-200 dark:border-[#334155] shadow-sm dark:shadow-[0_0_20px_rgba(6,182,212,0.15)] group-hover:shadow-md dark:group-hover:shadow-[0_0_30px_rgba(6,182,212,0.25)] transition-all duration-500">
+            <LayoutDashboard className="size-10" />
           </div>
         </div>
       </div>
 
-      {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Meetings</span>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+      {/* Stats Cards: Sapphire Duo Style */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
+        <div className="bg-white dark:bg-gradient-to-b dark:from-[#1E293B] dark:to-[#161E31] rounded-[2rem] p-6 border border-[#E0E7FF] dark:border-[#2D3A54] hover:border-blue-500/30 dark:hover:border-cyan-500/30 transition-all group shadow-xl shadow-blue-500/[0.03] dark:shadow-none hover:shadow-blue-500/[0.08] dark:hover:shadow-cyan-900/10">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Total Meetings</span>
+            <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-500/20">
               <CalendarClock className="size-5" />
             </div>
           </div>
-          <p className="text-4xl font-black text-slate-900">{isLoading ? "—" : meetingCount}</p>
-          <p className="text-xs text-slate-400 mt-1 font-medium">Scheduled for this week</p>
+          <p className="text-4xl font-black text-[#1E293B] dark:text-white">{isLoading ? "—" : meetingCount}</p>
+          <p className="text-xs text-slate-500 mt-2 font-bold tracking-tight">Active for current week</p>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recordings</span>
-            <div className="p-2 bg-violet-50 text-violet-600 rounded-xl">
+        <div className="bg-white dark:bg-gradient-to-b dark:from-[#1E293B] dark:to-[#161E31] rounded-[2rem] p-6 border border-[#E0E7FF] dark:border-[#2D3A54] hover:border-violet-500/30 transition-all group shadow-xl shadow-blue-500/[0.03] dark:shadow-none hover:shadow-violet-500/[0.08] dark:hover:shadow-violet-900/10">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Activity History</span>
+            <div className="p-2 bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-xl border border-violet-500/20">
               <History className="size-5" />
             </div>
           </div>
-          <p className="text-4xl font-black text-slate-900">{historyLoading ? "—" : activityCount}</p>
-          <p className="text-xs text-slate-400 mt-1 font-medium">Last 30 days history</p>
+          <p className="text-4xl font-black text-[#1E293B] dark:text-white">{historyLoading ? "—" : activityCount}</p>
+          <p className="text-xs text-slate-500 mt-2 font-bold tracking-tight">Records found in vault</p>
         </div>
 
-        <div className="bg-slate-950 rounded-[2rem] p-6 border border-slate-800 shadow-xl text-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Platform Stats</span>
-            <div className="p-2 bg-blue-600 text-white rounded-xl">
-              <Users className="size-5 fill-white" />
-            </div>
+        <div className="bg-white dark:bg-gradient-to-br dark:from-[#0A0F1E] dark:to-[#161E31] rounded-[2rem] p-6 border-2 border-blue-500/10 dark:border-cyan-500/20 relative overflow-hidden group shadow-xl shadow-blue-500/5 dark:shadow-2xl">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 dark:bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-cyan-500/70">Global Telemetry</span>
+            <Users className="size-5 text-blue-600 dark:text-cyan-400" />
           </div>
-          <p className="text-4xl font-black mb-1">{statsLoading ? "—" : stats?.unique_users || 0}</p>
-          <p className="text-xs text-slate-400 font-medium">Global Active Intelligent Users</p>
-          <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+          <p className="text-4xl font-black text-[#1E293B] dark:text-white">{statsLoading ? "—" : stats?.unique_users || 0}</p>
+          <div className="mt-6 flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-4">
             <div className="flex flex-col">
-              <span className="text-[9px] font-black uppercase tracking-tighter text-slate-500">Max Load</span>
-              <span className="text-sm font-bold text-blue-400">{stats?.max_total_sessions || 0}cap</span>
+              <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-tighter">Live</span>
+              <span className="text-sm font-black text-blue-600 dark:text-cyan-400">{stats?.active_in_call || 0}</span>
             </div>
             <div className="flex flex-col text-right">
-              <span className="text-[9px] font-black uppercase tracking-tighter text-slate-500">Live Uplinks</span>
-              <span className="text-sm font-bold text-green-400">{stats?.active_in_call || 0}</span>
+              <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-tighter">Max Capacity</span>
+              <span className="text-sm font-black text-blue-400 dark:text-azure-400">{stats?.max_total_sessions || 0}s</span>
             </div>
           </div>
         </div>

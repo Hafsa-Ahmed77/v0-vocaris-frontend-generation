@@ -11,6 +11,7 @@ import { Menu, Home } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { verifyToken } from "@/lib/api"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -22,9 +23,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("token")
     if (!token) {
       router.replace("/auth")
-    } else {
-      setAuthorized(true)
+      return
     }
+
+    // Validate token with backend — gracefully handles network failures
+    verifyToken().then((valid) => {
+      if (!valid) {
+        // Token is expired or rejected by backend
+        localStorage.removeItem("token")
+        router.replace("/auth")
+      } else {
+        setAuthorized(true)
+      }
+    })
   }, [router])
 
   // Close sidebar on route change
@@ -32,6 +43,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setIsSidebarOpen(false)
   }, [pathname])
 
+  // Show nothing while verifying — avoids flash of protected content
   if (!authorized) return null
 
   // Check if we are on dashboard or onboarding to remove sidebar/topbar

@@ -2,8 +2,10 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
+import { logout } from "@/lib/api"
 import {
   Bot,
   Settings,
@@ -12,8 +14,9 @@ import {
   LayoutDashboard,
   Info,
   X,
-  Radio,
-  Sparkles
+  LogOut,
+  ChevronUp,
+  User,
 } from "lucide-react"
 
 const nav = [
@@ -27,10 +30,61 @@ const secondaryNav = [
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
+interface UserProfile {
+  first_name?: string
+  last_name?: string
+  email?: string
+  profile_picture_url?: string
+  // legacy fallback fields (just in case)
+  name?: string
+  picture?: string
+}
+
 export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isNavigating, setIsNavigating] = useState(false)
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [profileExpanded, setProfileExpanded] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem("user")
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored))
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      router.replace("/auth")
+    } catch {
+      router.replace("/auth")
+    }
+  }
+
+  const displayName =
+    (user?.first_name
+      ? `${user.first_name}${user.last_name ? " " + user.last_name : ""}`
+      : null) ||
+    user?.name ||
+    user?.email?.split("@")[0] ||
+    "User"
+
+  const avatarUrl = user?.profile_picture_url || user?.picture || null
+
+  const initials = displayName
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
 
   return (
     <div className="flex h-full flex-col bg-slate-950 text-slate-300 font-sans border-r border-slate-800/50">
@@ -131,24 +185,62 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
         </div>
       </div>
 
-      {/* Footer Info
-      <div className="p-4 mt-auto">
-        <div className="bg-slate-900/50 rounded-2xl p-4 border border-slate-800/50">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Storage Status</span>
+      {/* User Profile Card */}
+      <div className="p-3 border-t border-slate-800/50">
+        <button
+          onClick={() => setProfileExpanded((p) => !p)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-900 transition-all duration-200 group"
+        >
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={displayName}
+                width={36}
+                height={36}
+                className="rounded-xl object-cover ring-1 ring-white/10"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-black ring-1 ring-white/10">
+                {initials}
+              </div>
+            )}
+            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-slate-950" />
           </div>
-          <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mb-1">
-            <div className="h-full bg-blue-500 rounded-full" style={{ width: '45%' }} />
+
+          {/* Name & Email */}
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-semibold text-white truncate leading-none mb-0.5">
+              {displayName}
+            </p>
+            <p className="text-[10px] text-slate-500 truncate font-medium">
+              {user?.email ?? "—"}
+            </p>
           </div>
-          <p className="text-[10px] text-slate-500">4.5 GB of 10 GB used</p>
-        </div>
-        <div className="mt-4 px-2 flex items-center justify-between text-[10px] text-slate-600">
-          <span>v0.8.2-PRO</span>
-          <span className="h-1 w-1 rounded-full bg-slate-700" />
-          <span>BETA ACCESS</span>
-        </div>
-      </div> */}
+
+          <ChevronUp
+            className={cn(
+              "size-4 text-slate-600 group-hover:text-slate-400 transition-all duration-200",
+              profileExpanded ? "rotate-180" : "rotate-0"
+            )}
+          />
+        </button>
+
+        {/* Expanded Logout Option */}
+        {profileExpanded && (
+          <div className="mt-1 px-1">
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 disabled:opacity-50"
+            >
+              <LogOut className="size-4" />
+              {isLoggingOut ? "Logging out…" : "Log out"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

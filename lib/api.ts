@@ -27,6 +27,60 @@ export async function apiFetch(
   return res.json()
 }
 
+/**
+ * Verifies the current user's token against the backend.
+ * Returns true if valid (or if backend is unreachable — graceful degradation).
+ * Returns false only if the backend explicitly says the token is invalid/expired.
+ */
+export async function verifyToken(): Promise<boolean> {
+  if (typeof window === "undefined") return true
+  const token = localStorage.getItem("token")
+  if (!token) return false
+
+  try {
+    const res = await fetch("/api/auth-verify", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    const data = await res.json().catch(() => ({ valid: true }))
+
+    // skipped means backend was unreachable — don't log the user out
+    if (data.skipped) return true
+
+    return data.valid === true
+  } catch {
+    // Network failure — don't log user out
+    return true
+  }
+}
+
+/**
+ * Logs out the current user.
+ * Calls backend logout endpoint (for audit/logging) then clears all local auth data.
+ */
+export async function logout(): Promise<void> {
+  if (typeof window === "undefined") return
+  const token = localStorage.getItem("token")
+
+  try {
+    // Notify backend (fire and forget — we clear locally regardless)
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+  } catch {
+    // Backend unreachable — still log out locally
+  } finally {
+    // Always clear local storage
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+  }
+}
+
 
 /* =========================
    DASHBOARD RELATED CALLS

@@ -9,16 +9,38 @@ import { ShieldCheck, Zap, MessageSquare, BarChart3, ArrowRight, CheckCircle, Cl
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { verifyToken } from "@/lib/api"
 
 export default function AuthPage() {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    // If user already has a valid token, skip login page entirely
+    const token = localStorage.getItem("token")
+    if (!token) {
+      setMounted(true)
+      setChecking(false)
+      return
+    }
 
-  if (!mounted) return null
+    // Validate existing token — if valid, redirect to onboarding selection
+    verifyToken().then((valid) => {
+      if (valid) {
+        router.replace("/onboarding-selection")
+      } else {
+        // Token is stale — clear it and show login
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        setMounted(true)
+        setChecking(false)
+      }
+    })
+  }, [router])
+
+  // Show nothing while checking token — avoids flash of login UI
+  if (checking || !mounted) return null
 
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-hidden relative selection:bg-blue-500/30 font-sans">
