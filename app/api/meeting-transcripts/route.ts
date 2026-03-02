@@ -18,11 +18,10 @@ export async function GET(req: NextRequest) {
 
         let autoProcess = searchParams.get("auto_process")
 
-        if (mode === "scrum") {
+        if (mode === "scrum" && !autoProcess) {
             // DOCS: "disabled for scrum mode"
             autoProcess = "false"
         } else if (!autoProcess) {
-            // Default to true for other modes if not specified
             autoProcess = "true"
         }
 
@@ -34,90 +33,60 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "bot_id is required" }, { status: 400 })
         }
 
-        // Construct strict variations based on docs + common patterns
-        const base = "https://vocaris-ztudf.ondigitalocean.app/api/v1"
-        const variations = [
-            // 1. Official Swagger: plural 'transcripts', with v1
-            `${base}/meeting/transcripts/${botId}?mode=${mode}&format=${format}&auto_process=${autoProcess}`,
-            // 2. Singular 'transcript'
-            `${base}/meeting/transcript/${botId}?mode=${mode}&format=${format}&auto_process=${autoProcess}`,
-            // 3. Hyphenated plural
-            `${base}/meeting-transcripts/${botId}?mode=${mode}&format=${format}&auto_process=${autoProcess}`,
-            // 4. No 'v1' variation (just in case)
-            `https://vocaris-ztudf.ondigitalocean.app/api/meeting/transcripts/${botId}?mode=${mode}&format=${format}&auto_process=${autoProcess}`
-        ]
+        // The official endpoint from docs: /api/v1/meeting/transcripts/{bot_id}
+        const officialUrl = `https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/transcripts/${botId}?mode=${mode}&format=${format}&auto_process=${autoProcess}`
 
-        console.log(`Proxy Transcripts: Polling variations for bot=${botId} (Mode=${mode})`)
+        console.log(`Proxy Transcripts: Polling official endpoint for bot=${botId} (Mode=${mode}, auto_process=${autoProcess})`)
 
-        let lastRes: Response | null = null
-        let lastBody = ""
+        try {
+            console.log(`  [Fetch] GET ${officialUrl}`)
+            const res = await fetch(officialUrl, {
+                method: "GET",
+                headers: {
+                    "User-Agent": "Vocaris-Server/1.0",
+                    "Accept": "application/json",
+                    ...(authHeader ? { Authorization: authHeader } : {}),
+                },
+                cache: "no-store",
+                signal: AbortSignal.timeout(15000)
+            })
 
-        // Try variations with Authorization first
-        for (const url of variations) {
-            try {
-                console.log(`  [Attempt] GET ${url}`)
-                const res = await fetch(url, {
-                    method: "GET",
-                    headers: {
-                        "User-Agent": "Vocaris-Server/1.0",
-                        "Accept": "application/json",
-                        ...(authHeader ? { Authorization: authHeader } : {}),
-                    },
-                    cache: "no-store",
-                    signal: AbortSignal.timeout(10000)
-                })
+            const resText = await res.text()
 
-                const resText = await res.text()
-
-                if (res.ok) {
-                    console.log(`✅ Proxy Transcripts: SUCCESS at ${url}`)
-                    return NextResponse.json(JSON.parse(resText), { status: 200 })
-                }
-
-                // If 401/403, it might be a public endpoint that rejects invalid tokens
-                if ((res.status === 401 || res.status === 403) && authHeader) {
-                    console.warn(`⚠️ Proxy Transcripts: Auth failed. Retrying WITHOUT Authorization...`)
-                    const retryRes = await fetch(url, {
-                        method: "GET",
-                        headers: {
-                            "User-Agent": "Vocaris-Server/1.0",
-                            "Accept": "application/json",
-                        },
-                        cache: "no-store",
-                        signal: AbortSignal.timeout(10000)
-                    })
-                    const retryText = await retryRes.text()
-                    if (retryRes.ok) {
-                        console.log(`✅ Proxy Transcripts: SUCCESS (unauthenticated) at ${url}`)
-                        return NextResponse.json(JSON.parse(retryText), { status: 200 })
-                    }
-                }
-
-                // Handle "No transcripts found" - often 404 but contains specific text
-                if (resText.toLowerCase().includes("no transcripts found")) {
-                    console.warn(`⏳ Proxy Transcripts: Backend says "No transcripts found" (Still processing)`)
-                    return NextResponse.json({
-                        tickets: [],
-                        items: [],
-                        transcript: "",
-                        is_processing: true,
-                        message: "Waiting for backend to process transcripts..."
-                    }, { status: 200 })
-                }
-
-                lastRes = res
-                lastBody = resText
-            } catch (e: any) {
-                console.error(`❌ Proxy Transcripts: Error at ${url}:`, e.message)
+            if (res.ok) {
+                console.log(`✅ Proxy Transcripts: SUCCESS`)
+                return NextResponse.json(JSON.parse(resText), { status: 200 })
             }
-        }
 
-        const fallbackStatus = (lastRes as any)?.status || 502
-        return NextResponse.json({
-            error: "Transcript retrieval failed",
-            detail: lastBody || "No response received from backend",
-            bot_id: botId
-        }, { status: fallbackStatus })
+            // Handling "Processing" vs "Hard Error"
+            // Backend often returns 404 "Not Found" or "No transcripts found" when processing isn't finished
+            const isProcessing =
+                resText.toLowerCase().includes("no transcripts found") ||
+                resText.toLowerCase().includes("not found") ||
+                res.status === 404
+
+            if (isProcessing) {
+                console.warn(`⏳ Proxy Transcripts: Backend is still processing. Returning 'is_processing' state.`)
+                return NextResponse.json({
+                    tickets: [],
+                    items: [],
+                    transcript: "",
+                    is_processing: true,
+                    message: "AI is analyzing the meeting... please wait."
+                }, { status: 200 })
+            }
+
+            // If it's a real error (not 404), return it
+            return NextResponse.json({
+                error: "Transcript retrieval failed",
+                detail: resText,
+                bot_id: botId
+            }, { status: res.status })
+
+        } catch (e: any) {
+            console.error(`❌ Proxy Transcripts: Error:`, e.message)
+            return NextResponse.json({ error: "Upstream request failed", detail: e.message }, { status: 502 })
+        }
 
     } catch (err: any) {
         console.error(`🔥 Proxy Transcripts FATAL ERROR:`, err.message)
