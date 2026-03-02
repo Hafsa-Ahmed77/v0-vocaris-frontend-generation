@@ -33,9 +33,9 @@ export default function AuthCallbackPage() {
       .then((user) => {
         localStorage.setItem("user", JSON.stringify(user))
 
-        // Redirect to dashboard as per user request (returning users)
-        console.log(`[AuthCallback] User: ${user.email} authenticated. Routing to dashboard.`)
-        router.replace("/dashboard")
+        // Redirect to onboarding selection for new/fresh sign-ins
+        console.log(`[AuthCallback] User: ${user.email} authenticated. Routing to onboarding setup.`)
+        router.replace("/onboarding-selection")
       })
       .catch(() => {
         localStorage.removeItem("token")
