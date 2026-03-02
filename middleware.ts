@@ -9,7 +9,6 @@ export function middleware(req: NextRequest) {
     if (pathname === "/" && code) {
         const callbackUrl = req.nextUrl.clone()
         callbackUrl.pathname = "/auth/clickup/callback"
-        console.log("🔀 Relaying ClickUp code from root to callback:", callbackUrl.toString())
         return NextResponse.redirect(callbackUrl)
     }
 
