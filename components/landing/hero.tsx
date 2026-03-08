@@ -57,14 +57,19 @@ export function Hero() {
               className="flex flex-wrap gap-4 pt-4"
             >
               <Button
-                asChild
                 size="lg"
-                className="bg-secondary hover:bg-secondary/90 text-white shadow-lg transition-all"
+                onClick={() => {
+                  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+                  if (token) {
+                    window.location.href = "/dashboard"
+                  } else {
+                    window.location.href = "/auth"
+                  }
+                }}
+                className="bg-secondary hover:bg-secondary/90 text-white shadow-lg transition-all flex items-center gap-2 cursor-pointer"
               >
-                <Link href="/auth" className="flex items-center gap-2">
-                  Start Free with Google
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                Start Free with Google
+                <ArrowRight className="w-4 h-4" />
               </Button>
 
             </motion.div>

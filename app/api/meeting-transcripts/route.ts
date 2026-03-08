@@ -59,19 +59,24 @@ export async function GET(req: NextRequest) {
             }
 
             // Handling "Processing" vs "Hard Error"
-            // Backend often returns 404 "Not Found" or "No transcripts found" when processing isn't finished
+            // If it's 404, we need to know if it's REALLY processing or just GONE.
+            // For now, let's assume if it's 404 it's NOT_FOUND if it's an old bot.
+            // Better: Return a specific status so the UI can decide.
+
             const isProcessing =
-                resText.toLowerCase().includes("no transcripts found") ||
-                resText.toLowerCase().includes("not found") ||
-                res.status === 404
+                res.status === 404 && (resText.toLowerCase().includes("no transcripts found") || resText.toLowerCase().includes("not found"))
 
             if (isProcessing) {
-                console.warn(`⏳ Proxy Transcripts: Backend is still processing. Returning 'is_processing' state.`)
+                console.warn(`⏳ Proxy Transcripts: Backend returned 404 for bot=${botId}.`)
+
+                // If it's 404 but we asked for auto_process=true, it's possible the AI is actually working.
+                // But we shouldn't trap it forever. 
                 return NextResponse.json({
                     tickets: [],
                     items: [],
                     transcript: "",
                     is_processing: true,
+                    status: "awaiting_analysis",
                     message: "AI is analyzing the meeting... please wait."
                 }, { status: 200 })
             }

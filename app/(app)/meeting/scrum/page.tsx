@@ -34,13 +34,15 @@ type ManifestSection = {
 function ScrumBoardContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const botId = searchParams.get("botId")
+    const botId = searchParams.get("bot_id") || searchParams.get("botId")
 
     const [tickets, setTickets] = useState<ScrumTicket[]>([])
     const [rawOutput, setRawOutput] = useState<string>("")
     const [manifestSections, setManifestSections] = useState<ManifestSection[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [isProcessing, setIsProcessing] = useState(false)
+    const [pollCount, setPollCount] = useState(0)
     const [isIntegrationOpen, setIsIntegrationOpen] = useState(false)
     const [isPushed, setIsPushed] = useState(false)
 
@@ -63,14 +65,22 @@ function ScrumBoardContent() {
             return
         }
 
-        const fetchScrumData = async () => {
+        const fetchScrumData = async (isPoll = false) => {
             try {
-                setLoading(true)
+                if (!isPoll) setLoading(true)
                 setError("")
                 console.log("📡 Fetching Scrum data for:", botId)
 
                 const data = await apiFetch(`/meeting-transcripts?bot_id=${botId}&mode=scrum&auto_process=true`)
                 console.log("✅ Scrum API Response:", data)
+
+                if (data.is_processing) {
+                    setIsProcessing(true)
+                    // If still processing, we keep loading false on subsequent polls but keep isProcessing true
+                    return
+                }
+
+                setIsProcessing(false)
 
                 let extractedTickets: ScrumTicket[] = []
                 if (data.tickets && Array.isArray(data.tickets)) {
@@ -133,7 +143,20 @@ function ScrumBoardContent() {
         }
 
         fetchScrumData()
-    }, [botId])
+
+        // Polling loop if processing - stop after 45 seconds (9 polls)
+        let pollInterval: NodeJS.Timeout
+        if (!loading && isProcessing && pollCount < 9) {
+            pollInterval = setInterval(() => {
+                setPollCount(prev => prev + 1)
+                fetchScrumData(true)
+            }, 5000)
+        }
+
+        return () => {
+            if (pollInterval) clearInterval(pollInterval)
+        }
+    }, [botId, isProcessing, pollCount])
 
     const handleCommit = async (targetListId: string, token: string, assigneeId?: string) => {
         try {
@@ -210,10 +233,41 @@ function ScrumBoardContent() {
             </div>
 
             <main className="relative z-10 p-4 lg:p-0 no-scrollbar">
-                {loading ? (
+                {loading || isProcessing ? (
                     <div className="flex flex-col items-center justify-center py-40 space-y-12">
-                        <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
-                        <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">AI Analysis</h2>
+                        <div className="relative">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                className="w-20 h-20 rounded-[2rem] border-2 border-blue-500/20 border-t-blue-500 flex items-center justify-center"
+                            />
+                            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-blue-500 animate-pulse" />
+                        </div>
+                        <div className="space-y-4 text-center">
+                            <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
+                                {isProcessing ? "Finalizing Intelligence" : "AI Analysis"}
+                            </h2>
+                            <p className="text-sm font-bold text-slate-500 animate-pulse">
+                                {pollCount > 3
+                                    ? "This is taking longer than usual... still trying."
+                                    : isProcessing ? "Processing meeting data into scrum tickets..." : "Connecting to Vocaris Engine..."}
+                            </p>
+                            {pollCount >= 9 && (
+                                <div className="pt-8 flex flex-col gap-4 items-center">
+                                    <p className="text-xs text-rose-500 font-bold max-w-xs">
+                                        Analysis seems stuck or data might be unavailable in the backend.
+                                    </p>
+                                    <div className="flex gap-4">
+                                        <Button variant="outline" onClick={() => { setPollCount(0); setIsProcessing(true); }}>
+                                            Manual Retry
+                                        </Button>
+                                        <Button variant="ghost" onClick={() => router.push('/dashboard')}>
+                                            Back to Dashboard
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 ) : error ? (
                     <div className="max-w-xl mx-auto p-16 rounded-[4rem] bg-white/70 dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 text-center space-y-10 shadow-3xl backdrop-blur-3xl">

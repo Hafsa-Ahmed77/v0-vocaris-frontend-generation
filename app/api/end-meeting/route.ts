@@ -16,14 +16,22 @@ export async function POST(req: NextRequest) {
         }
 
         const variations = [
-            // 1. Official Swagger: POST /api/v1/meeting/end (Strict Body: bot_id)
+            // 1. SPEC FOCUS: Official Swagger: POST /api/v1/meeting/end (Body: { bot_id: string })
             { url: "https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/end", method: "POST", body: { bot_id: botId } },
-            // 2. Query Param Variation
+
+            // 2. FALLBACK: Body with session_id
+            { url: "https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/end", method: "POST", body: { session_id: botId } },
+
+            // 3. FALLBACK: Query Param Variations (seen in status proxy)
             { url: `https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/end?bot_id=${botId}`, method: "POST", body: {} },
-            // 3. Path Parameter Variation
+            { url: `https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/end?session_id=${botId}`, method: "POST", body: {} },
+
+            // 4. FALLBACK: Path Parameter / No-V1 variations
             { url: `https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/end/${botId}`, method: "POST", body: {} },
-            // 4. Voice Fallback
-            { url: `https://vocaris-ztudf.ondigitalocean.app/api/v1/voice-meeting/${botId}`, method: "DELETE" }
+            { url: "https://vocaris-ztudf.ondigitalocean.app/api/meeting/end", method: "POST", body: { bot_id: botId } },
+
+            // 5. Direct Voice DELETE Fallback
+            { url: `https://vocaris-ztudf.ondigitalocean.app/api/v1/voice-meeting/${botId}`, method: "DELETE", body: {} }
         ]
 
         if (botId.toLowerCase() === "all" || botId === "cleanup") {

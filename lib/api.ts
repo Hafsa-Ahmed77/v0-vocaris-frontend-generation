@@ -81,6 +81,11 @@ export async function logout(): Promise<void> {
   }
 }
 
+// Get Auth Configuration
+export function getAuthConfig() {
+  return apiFetch("/auth/config")
+}
+
 
 /* =========================
    DASHBOARD RELATED CALLS
@@ -100,9 +105,9 @@ export function getMeetingHistory(limit = 50, offset = 0) {
 }
 
 
-// Active meeting (if any)
-export function getActiveMeeting() {
-  return apiFetch("/meeting-active")
+// Status of a specific bot session
+export function getMeetingStatus(botId: string) {
+  return apiFetch(`/meeting-status?bot_id=${botId}`)
 }
 
 // Stats / analytics
@@ -145,4 +150,45 @@ export function startMeeting(meetingUrl: string, isScrum = false, title?: string
 // Get meeting transcripts / tickets
 export function getMeetingTranscripts(botId: string, mode = "simple") {
   return apiFetch(`/meeting-transcripts?bot_id=${botId}&mode=${mode}`)
+}
+
+// End a specific meeting
+export function endMeeting(botId: string) {
+  return apiFetch(`/end-meeting?bot_id=${botId}`, {
+    method: "POST",
+  })
+}
+
+// Get all sessions for the authenticated user
+export function getUserSessions() {
+  return apiFetch("/meeting-sessions")
+}
+
+// Get the current user profile
+export function getCurrentUser() {
+  return apiFetch("/auth/me")
+}
+
+/* =========================
+   CLICKUP INTEGRATION
+========================= */
+
+// Get ClickUp workspace hierarchy
+export function getClickUpWorkspace(token: string) {
+  return apiFetch(`/clickup/workspace?token=${token}`)
+}
+
+// Create a ClickUp task
+export function createClickUpTask(data: {
+  list_id: string
+  token: string
+  title: string
+  description?: string
+  priority?: number
+  assignees?: string[]
+}) {
+  return apiFetch("/clickup/task", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
 }

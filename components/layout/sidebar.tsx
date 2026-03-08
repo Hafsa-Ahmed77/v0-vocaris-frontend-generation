@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { logout } from "@/lib/api"
+import { Logo } from "@/components/logo"
 import {
   Bot,
   Settings,
@@ -16,8 +17,9 @@ import {
   X,
   LogOut,
   ChevronUp,
-  User,
+  User as UserIcon,
 } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -90,15 +92,9 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
     <div className="flex h-full flex-col bg-slate-950 text-slate-300 font-sans border-r border-slate-800/50">
       {/* Logo Section */}
       <div className="flex h-16 items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-900/20 ring-1 ring-white/20">
-            <Bot className="size-5" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-white">Vocaris AI</span>
-            <span className="text-[10px] text-slate-500 font-medium leading-none">Intelligence Engine</span>
-          </div>
-        </div>
+        <Link href="/">
+          <Logo className="scale-75 origin-left" />
+        </Link>
         {isMobile && (
           <button
             onClick={onClose}
@@ -192,22 +188,15 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-900 transition-all duration-200 group"
         >
           {/* Avatar */}
-          <div className="relative shrink-0">
+          <Avatar className="h-9 w-9 rounded-xl ring-1 ring-white/10 overflow-hidden bg-slate-800 shrink-0">
             {avatarUrl ? (
-              <Image
-                src={avatarUrl}
-                alt={displayName}
-                width={36}
-                height={36}
-                className="rounded-xl object-cover ring-1 ring-white/10"
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-black ring-1 ring-white/10">
-                {initials}
-              </div>
-            )}
+              <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />
+            ) : null}
+            <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-xs font-black uppercase">
+              {initials}
+            </AvatarFallback>
             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-slate-950" />
-          </div>
+          </Avatar>
 
           {/* Name & Email */}
           <div className="flex-1 min-w-0 text-left">

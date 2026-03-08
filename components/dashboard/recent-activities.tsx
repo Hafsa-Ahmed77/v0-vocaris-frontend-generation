@@ -42,12 +42,12 @@ export function RecentActivities({ items, onLoadMore, isLoading, hasMore }: Rece
     const handleCreateTicket = (activity: Activity) => {
         console.log("🚀 Navigating to Scrum Page for:", activity.botId)
         if (!activity.botId) return
-        router.push(`/meeting/scrum?botId=${activity.botId}`)
+        router.push(`/meeting/scrum?bot_id=${activity.botId}`)
     }
 
     const handleChat = (activity: Activity) => {
         if (activity.botId) {
-            router.push(`/meeting/chat?botId=${activity.botId}`)
+            router.push(`/meeting/chat?bot_id=${activity.botId}`)
         } else {
             router.push(`/onboarding-conversation?meetingId=${activity.id}`)
         }

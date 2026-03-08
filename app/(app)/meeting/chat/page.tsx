@@ -13,10 +13,10 @@ type Message = {
   content: string
 }
 
-export default function MeetingChatPage() {
+function MeetingChatContent() {
   const params = useSearchParams()
   const router = useRouter()
-  const botId = params.get("botId")
+  const botId = params.get("bot_id") || params.get("botId")
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
@@ -388,6 +388,15 @@ export default function MeetingChatPage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+import { Suspense } from "react"
+export default function MeetingChatPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>}>
+      <MeetingChatContent />
+    </Suspense>
   )
 }
 

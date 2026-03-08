@@ -5,7 +5,8 @@ import { Loader2, CheckCircle2, AlertCircle, MessageSquare, Layout } from "lucid
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { apiFetch } from "@/lib/api"
+import { useSearchParams } from "next/navigation"
+import { apiFetch, getUserSessions, getMeetingStatus, endMeeting } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 type MeetingStatus = {
@@ -21,6 +22,8 @@ type MeetingStatus = {
 
 export default function MeetingLivePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [status, setStatus] = useState<MeetingStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [ended, setEnded] = useState(false)
@@ -29,8 +32,12 @@ export default function MeetingLivePage() {
   const [processingChat, setProcessingChat] = useState(false)
   const [resultsReady, setResultsReady] = useState(false)
 
-  const botId = typeof window !== "undefined" ? localStorage.getItem("botId") : null
-  const isScrum = typeof window !== "undefined" ? localStorage.getItem("isScrum") === "true" : false
+  // Multi-Agent: Prioritize URL parameters over localStorage
+  const urlBotId = searchParams.get("bot_id")
+  const urlIsScrum = searchParams.get("is_scrum") === "true"
+
+  const botId = urlBotId || (typeof window !== "undefined" ? localStorage.getItem("botId") : null)
+  const isScrum = urlBotId ? urlIsScrum : (typeof window !== "undefined" ? localStorage.getItem("isScrum") === "true" : false)
 
   // -----------------------------
   // STATUS POLLING (Bot Health Only)
@@ -41,7 +48,7 @@ export default function MeetingLivePage() {
     let consecutiveFailures = 0
     const fetchStatus = async () => {
       try {
-        const data = await apiFetch(`/meeting-status?bot_id=${botId}`)
+        const data = await getMeetingStatus(botId)
         setStatus(data)
         setLoading(false)
 
@@ -64,19 +71,33 @@ export default function MeetingLivePage() {
   // -----------------------------
   // FINISH MEETING & TRIGGER RESULTS
   // -----------------------------
-  const handleFinishMeeting = async () => {
-    // We no longer call /end-meeting because it is destructive to the session.
-    // We simply stop the local monitor and trigger a final transcript fetch.
-    setEnded(true)
-    setIsEnding(false)
+  const handleTerminateSession = async () => {
+    if (!botId) return
 
-    // Trigger the definitive fetch immediately
-    fetchResults()
+    setIsEnding(true)
+    try {
+      console.log("🛑 [MeetingLive] Terminating bot session:", botId)
+      await endMeeting(botId)
+
+      // Successfully ended on backend
+      setEnded(true)
+      fetchResults()
+    } catch (err) {
+      console.error("Failed to end meeting via API:", err)
+      // Fallback: If it's already ended or backend is unreachable, 
+      // we still transition to result view so user isn't stuck.
+      setEnded(true)
+      fetchResults()
+    } finally {
+      setIsEnding(false)
+    }
   }
 
   const fetchResults = async () => {
     if (!botId) return
-    const sessionId = localStorage.getItem("sessionId") || ""
+
+    // Try to get session_id from current status or fallback to global (if it matches)
+    const sessionId = status?.session_id || localStorage.getItem("sessionId") || ""
 
     try {
       console.log("📡 [MeetingLive] Triggering definitive transcript fetch...")
@@ -95,16 +116,20 @@ export default function MeetingLivePage() {
 
   const handleAction = (type: "chat" | "scrum") => {
     if (!botId) return
-    if (type === "scrum") router.push(`/meeting/scrum?botId=${botId}`)
-    else router.push(`/meeting/chat?botId=${botId}`)
+    if (type === "scrum") router.push(`/meeting/scrum?bot_id=${botId}`)
+    else router.push(`/meeting/chat?bot_id=${botId}`)
   }
 
   const handleBack = () => {
-    localStorage.removeItem("botId")
-    localStorage.removeItem("meetingUrl")
-    localStorage.removeItem("userName")
-    localStorage.removeItem("isScrum")
-    router.push("/start-meeting")
+    // Only clear if the current bot matches the global one
+    if (localStorage.getItem("botId") === botId) {
+      localStorage.removeItem("botId")
+      localStorage.removeItem("meetingUrl")
+      localStorage.removeItem("userName")
+      localStorage.removeItem("isScrum")
+      localStorage.removeItem("sessionId")
+    }
+    router.push("/dashboard")
   }
 
   return (
@@ -183,11 +208,18 @@ export default function MeetingLivePage() {
 
                       <Button
                         size="lg"
-                        onClick={handleFinishMeeting}
+                        onClick={handleTerminateSession}
                         disabled={isEnding || loading}
                         className="w-full h-16 rounded-2xl bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-black text-lg shadow-xl shadow-slate-200 dark:shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                       >
-                        Generate Meeting Insights
+                        {isEnding ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Finalizing Intelligence...
+                          </div>
+                        ) : (
+                          "Terminate Agent & Analyze"
+                        )}
                       </Button>
                     </div>
                   </>

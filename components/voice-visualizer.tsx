@@ -9,10 +9,10 @@ interface VoiceVisualizerProps {
 
 export function VoiceVisualizer({ stream, isRecording }: VoiceVisualizerProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const animationRef = useRef<number>()
-    const audioContextRef = useRef<AudioContext>()
-    const analyserRef = useRef<AnalyserNode>()
-    const sourceRef = useRef<MediaStreamAudioSourceNode>()
+    const animationRef = useRef<number | null>(null)
+    const audioContextRef = useRef<AudioContext | null>(null)
+    const analyserRef = useRef<AnalyserNode | null>(null)
+    const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null)
 
     useEffect(() => {
         if (!stream || !isRecording || !canvasRef.current) return

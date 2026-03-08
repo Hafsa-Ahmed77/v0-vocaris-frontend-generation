@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, Menu, X, LogOut, User as UserIcon, ChevronDown } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { logout } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { Logo } from "@/components/logo"
 
 interface UserProfile {
   first_name?: string
@@ -86,15 +88,8 @@ export function SiteHeader() {
 
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: 6 }}
-              className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.6)] transition-transform"
-            >
-              <span className="absolute inset-0 bg-[radial-gradient(circle,rgba(59,130,246,0.4)_0%,transparent_70%)] blur-lg"></span>
-              <Sparkles className="w-5 h-5 relative z-10" />
-            </motion.div>
-            <span className="font-bold text-lg text-white">Vocaris</span>
+          <Link href="/">
+            <Logo />
           </Link>
 
           {/* Navigation */}
@@ -126,24 +121,16 @@ export function SiteHeader() {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="flex items-center gap-2 p-1 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                    className="flex items-center gap-2 p-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
                   >
-                    <div className="relative w-8 h-8 shrink-0">
+                    <Avatar className="h-8 w-8 rounded-lg ring-1 ring-white/10 overflow-hidden bg-slate-800">
                       {avatarUrl ? (
-                        <Image
-                          src={avatarUrl}
-                          alt={displayName}
-                          width={32}
-                          height={32}
-                          className="rounded-lg object-cover ring-1 ring-white/10"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-black">
-                          {initials}
-                        </div>
-                      )}
-                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-[#0A0F1C]" />
-                    </div>
+                        <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />
+                      ) : null}
+                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-[10px] font-black uppercase">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
                     <ChevronDown className={cn("size-3.5 text-slate-400 transition-transform hidden sm:block", isProfileOpen && "rotate-180")} />
                   </motion.button>
 

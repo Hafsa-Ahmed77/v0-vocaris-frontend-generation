@@ -6,9 +6,9 @@ import { RecentActivities } from "@/components/dashboard/recent-activities"
 import { QuickJoin } from "@/components/dashboard/quick-join"
 import { useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CalendarClock, History, Zap, MonitorPlay, Users } from "lucide-react"
+import { Zap, MonitorPlay, LayoutDashboard, Search, Filter, SlidersHorizontal, Calendar, ArrowRight, CalendarClock, History, Users, MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { getUpcomingMeetings, getMeetingHistory, startMeeting, getMeetingStats } from "@/lib/api"
+import { getUpcomingMeetings, getMeetingStats, getMeetingHistory, startMeeting, getUserSessions } from "@/lib/api"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -33,6 +33,18 @@ export default function DashboardPage() {
     }
   }, [])
 
+  const { data: sessionData, isLoading: sessionsLoading } = useSWR(
+    "user-sessions",
+    async () => {
+      const token = localStorage.getItem("token")
+      if (!token) return null
+      return await getUserSessions()
+    },
+    { refreshInterval: 10000 } // Refresh sessions every 10s
+  )
+
+  const activeSessions = sessionData?.sessions?.filter((s: any) => s.is_active) || []
+
   // Platform stats
   const { data: stats, isLoading: statsLoading } = useSWR("meeting-stats", async () => {
     const token = localStorage.getItem("token")
@@ -44,7 +56,7 @@ export default function DashboardPage() {
     const token = localStorage.getItem("token")
     if (!token) return null
     return await getUpcomingMeetings()
-  })
+  }, { refreshInterval: 30000 })
 
   const { data: historyData, isLoading: historyLoading } = useSWR(
     ["meeting-history", offset],
@@ -61,11 +73,14 @@ export default function DashboardPage() {
       setIsStartingAgent(true)
       const res = await startMeeting(url, isScrum, isScrum ? "Scrum Meeting" : "New Meeting")
       toast.success("Agent is joining the meeting!")
+
+      // We still keep these for quick recovery, but the source of truth will be URL
       localStorage.setItem("botId", res.bot_id)
       localStorage.setItem("sessionId", res.session_id || "")
       localStorage.setItem("meetingUrl", url)
       localStorage.setItem("isScrum", String(res.is_scrum ?? isScrum))
-      router.push("/meeting/live")
+
+      router.push(`/meeting/live?bot_id=${res.bot_id}&is_scrum=${res.is_scrum ?? isScrum}`)
     } catch (err: any) {
       toast.error(err.message || "Failed to start agent")
     } finally {
@@ -86,6 +101,18 @@ export default function DashboardPage() {
     isScrum: m.is_scrum === true || m.is_scrum === "true" || Number(m.is_scrum) === 1 || m.scrum_mode === true || m.is_scrum_mode === true || m.meeting_title?.toLowerCase().includes("scrum") || false,
     botId: m.bot_id
   })) || []
+
+  // Enhanced filtering for Upcoming Meetings
+  const completedUrls = new Set(historyData?.history?.filter((m: any) => m.status === "completed" || m.transcript_count > 0).map((m: any) => m.meeting_url).filter(Boolean))
+  const filteredEvents = data?.events?.filter((e: any) => {
+    // 1. Skip if already exists in history with transcripts or completed status
+    if (e.meeting_url && completedUrls.has(e.meeting_url)) return false
+
+    // 2. Skip if it's strictly in the past (end_time < now)
+    if (e.end_time && new Date(e.end_time) < new Date()) return false
+
+    return true
+  }) || []
 
   const meetingCount = data?.events?.length ?? 0
   const activityCount = activities.length
@@ -125,6 +152,76 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* 🚀 NEW: Live Intelligence Sessions Section */}
+      {activeSessions.length > 0 && (
+        <div className="space-y-4 animate-in slide-in-from-top-4 duration-700">
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-6 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
+              <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Live Intelligence Sessions</h2>
+              <div className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest border border-cyan-500/20">
+                {activeSessions.length} Active
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {activeSessions.map((session: any) => (
+              <div
+                key={session.bot_id}
+                onClick={() => router.push(`/meeting/live?bot_id=${session.bot_id}&is_scrum=${session.is_scrum}`)}
+                className="group cursor-pointer relative"
+              >
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-[2rem] blur opacity-0 group-hover:opacity-100 transition duration-500" />
+                <div className="relative bg-white dark:bg-[#161E31] p-6 rounded-[2rem] border border-[#E0E7FF] dark:border-[#2D3A54] group-hover:border-cyan-500/50 transition-all shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20">
+                        <Zap className="size-5 fill-current" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[150px]">
+                          {session.meeting_title || "Active Meeting"}
+                        </h4>
+                        <p className="text-[10px] text-slate-400 font-bold tracking-tight uppercase tracking-widest">
+                          {session.is_scrum ? "Scrum Mode" : "Analysis Mode"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-1.5 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                        <span className="text-cyan-500 font-black text-[9px] tracking-tight">UPLINK ACTIVE</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[10px] text-slate-500 font-bold">
+                          {Math.floor(session.uptime_seconds / 60)}m {session.uptime_seconds % 60}s
+                        </p>
+                        {session.transcript_count !== undefined && (
+                          <>
+                            <span className="text-slate-300 dark:text-slate-700">|</span>
+                            <div className="flex items-center gap-1 text-blue-500 font-black text-[10px]">
+                              <MessageSquare className="size-3" />
+                              {session.transcript_count}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
+                    <span className="text-[10px] text-slate-400 font-bold truncate max-w-[180px]">
+                      {session.meeting_url || "Direct Join"}
+                    </span>
+                    <ArrowRight className="size-4 text-cyan-500 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards: Sapphire Duo Style */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
@@ -194,7 +291,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <UpcomingMeetings
-                  items={data?.events?.map((e: any) => ({
+                  items={filteredEvents.map((e: any) => ({
                     id: e.event_id,
                     title: e.title,
                     with: e.organizer,
@@ -202,7 +299,7 @@ export default function DashboardPage() {
                     end_time: e.end_time,
                     meeting_url: e.meeting_url,
                     auto_join_enabled: e.auto_join_enabled,
-                  })) || []}
+                  }))}
                 />
               )}
             </div>
@@ -244,24 +341,4 @@ export default function DashboardPage() {
   )
 }
 
-function LayoutDashboard(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="7" height="9" x="3" y="3" rx="1" />
-      <rect width="7" height="5" x="14" y="3" rx="1" />
-      <rect width="7" height="9" x="14" y="12" rx="1" />
-      <rect width="7" height="5" x="3" y="16" rx="1" />
-    </svg>
-  )
-}
+
