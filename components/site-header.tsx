@@ -209,7 +209,7 @@ export function SiteHeader() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 text-white hover:bg-white/10 rounded-lg md:hidden transition-colors"
+              className="p-2 text-indigo-950 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg md:hidden transition-colors"
               aria-label="Toggle menu"
             >
               <motion.div
@@ -231,26 +231,26 @@ export function SiteHeader() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden glass border-b border-white/10 bg-[#0A0F1C]/95 backdrop-blur-2xl overflow-hidden"
+            className="md:hidden border-b border-slate-200 dark:border-white/10 bg-white/95 dark:bg-[#0A0F1C]/95 backdrop-blur-2xl overflow-hidden"
           >
             <div className="p-6 space-y-6">
               <nav className="flex flex-col gap-4">
                 <Link
                   href="/#how-it-works"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-lg font-bold text-white hover:text-cyan-400 transition-colors py-2"
+                  className="text-lg font-bold text-indigo-950 dark:text-white hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors py-2"
                 >
                   How it works
                 </Link>
                 <Link
                   href="/#contact"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-lg font-bold text-white hover:text-cyan-400 transition-colors py-2"
+                  className="text-lg font-bold text-indigo-950 dark:text-white hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors py-2"
                 >
                   Contact
                 </Link>
               </nav>
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+              <div className="pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-400">Theme</span>
                 <ThemeToggle />
               </div>
@@ -259,7 +259,7 @@ export function SiteHeader() {
                   <Button
                     asChild
                     variant="ghost"
-                    className="w-full text-white hover:text-blue-400 hover:bg-white/5 font-bold justify-start px-0"
+                    className="w-full text-indigo-950 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/5 font-bold justify-start px-0"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <Link href="/auth">Sign in</Link>

@@ -11,7 +11,7 @@ import { Menu, Home } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { verifyToken, parseJwt } from "@/lib/api"
+import { verifyToken, parseJwt, getUserJobs } from "@/lib/api"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -44,18 +44,39 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       }
     }
 
-    // Validate token with backend — gracefully handles network failures
-    verifyToken().then((valid) => {
+    // Validate token and check onboarding status
+    verifyToken().then(async (valid) => {
       if (!valid) {
-        // Token is expired or rejected by backend
         localStorage.removeItem("token")
         localStorage.removeItem("user")
         router.replace("/auth")
       } else {
-        setAuthorized(true)
+        // Token is valid, now check if user has actual jobs/profiles
+        try {
+          const jobsData = await getUserJobs()
+          const jobs = Array.isArray(jobsData) ? jobsData : (jobsData?.jobs || [])
+          
+          const isOnboardingPath = pathname.startsWith("/onboarding")
+          const isJobManagementPath = pathname === "/onboarding-jobs"
+          
+          // Logic: Only redirect if they have ZERO jobs/context.
+          // This allows existing users with jobs to access the dashboard even without recent sessions.
+          const needsOnboarding = jobs.length === 0
+          
+          if (needsOnboarding && !isOnboardingPath && !isJobManagementPath) {
+            console.log("[AuthGuard] No jobs found. Redirecting to onboarding setup.")
+            router.replace("/onboarding-selection")
+          } else {
+            setAuthorized(true)
+          }
+        } catch (err) {
+          console.error("[AuthGuard] Failed to fetch onboarding status:", err)
+          // Fallback: allow access if API fails to avoid locking users out
+          setAuthorized(true)
+        }
       }
     })
-  }, [router])
+  }, [router, pathname])
 
   // Close sidebar on route change
   useEffect(() => {
