@@ -1,24 +1,41 @@
 "use client"
 
 import { useState } from "react"
-import { Zap, Link as LinkIcon, Play, Check } from "lucide-react"
+import { Zap, Link as LinkIcon, Play, Briefcase, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { useEffect } from "react"
 
 interface QuickJoinProps {
-    onStartAgent: (url: string, isScrum: boolean) => Promise<void>
+    onStartAgent: (url: string, isScrum: boolean, jobId?: string) => Promise<void>
     isLoading?: boolean
+    jobs?: any[]
 }
 
-export function QuickJoin({ onStartAgent, isLoading }: QuickJoinProps) {
+export function QuickJoin({ onStartAgent, isLoading, jobs = [] }: QuickJoinProps) {
     const [url, setUrl] = useState("")
     const [isScrum, setIsScrum] = useState(false)
+    const [selectedJobId, setSelectedJobId] = useState<string>("")
+
+    // Auto-select if only one job exists
+    useEffect(() => {
+        if (jobs.length === 1 && !selectedJobId) {
+            setSelectedJobId(jobs[0].job_id)
+        }
+    }, [jobs, selectedJobId])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!url.trim()) return
-        await onStartAgent(url, isScrum)
+        await onStartAgent(url, isScrum, (selectedJobId && selectedJobId !== "none") ? selectedJobId : undefined)
     }
 
     return (
@@ -66,6 +83,29 @@ export function QuickJoin({ onStartAgent, isLoading }: QuickJoinProps) {
                     </div>
                 </div>
 
+                {jobs.length > 0 && (
+                    <div className="mb-4 relative animate-in fade-in slide-in-from-top-2 duration-500">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 block px-1">
+                            Job Context (Optional)
+                        </label>
+
+                        <Select value={selectedJobId} onValueChange={setSelectedJobId}>
+                            <SelectTrigger className="w-full h-12 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-[#1E293B] dark:text-white px-11 relative">
+                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-blue-500 dark:text-cyan-500 pointer-events-none" />
+                                <SelectValue placeholder="Generic / No Context" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-[#0A0F1E] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-xl">
+                                <SelectItem value="none">Generic / No Context</SelectItem>
+                                {jobs.map((job) => (
+                                    <SelectItem key={job.job_id} value={job.job_id}>
+                                        {job.company_name} — {job.role}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 relative">
                     <div className="flex-1 relative">
                         <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400 dark:text-slate-500" />
@@ -73,7 +113,7 @@ export function QuickJoin({ onStartAgent, isLoading }: QuickJoinProps) {
                             type="text"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            placeholder="Paste Google Meet or Zoom URL..."
+                            placeholder="Paste Google Meet URL..."
                             className="w-full pl-11 pr-4 h-14 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-[#1E293B] dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-cyan-500/20 focus:border-blue-500/50 dark:focus:border-cyan-500/50 transition-all shadow-inner dark:shadow-none"
                         />
                     </div>

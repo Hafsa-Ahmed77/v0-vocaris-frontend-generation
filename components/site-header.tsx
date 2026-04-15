@@ -84,7 +84,11 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-[100] w-full">
-      <div className="glass border-b border-white/10 bg-gradient-to-r from-[#0A0F1C]/90 via-[#111827]/80 to-[#1E293B]/90 backdrop-blur-xl shadow-[0_0_25px_rgba(59,130,246,0.15)]">
+      <div className={cn(
+        "glass border-b transition-all duration-300 backdrop-blur-xl",
+        "border-slate-200/60 bg-white/70 shadow-[0_0_20px_rgba(0,0,0,0.03)]",
+        "dark:border-white/10 dark:bg-gradient-to-r dark:from-[#0A0F1C]/90 dark:via-[#111827]/80 dark:to-[#1E293B]/90 dark:shadow-[0_0_25px_rgba(59,130,246,0.15)]"
+      )}>
 
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           {/* Logo */}
@@ -96,13 +100,13 @@ export function SiteHeader() {
           <nav className="hidden md:flex items-center gap-12">
             <Link
               href="/#how-it-works"
-              className="text-base font-black text-white hover:text-cyan-400 transition-colors"
+              className="text-base font-black text-indigo-900/80 dark:text-white/90 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
             >
               How it works
             </Link>
             <Link
               href="/#contact"
-              className="text-base font-black text-white hover:text-cyan-400 transition-colors"
+              className="text-base font-black text-indigo-900/80 dark:text-white/90 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
             >
               Contact
             </Link>

@@ -11,7 +11,7 @@ import { Menu, Home } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { verifyToken } from "@/lib/api"
+import { verifyToken, parseJwt } from "@/lib/api"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -26,11 +26,30 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       return
     }
 
+    // Check JWT expiry locally for proactive warning
+    const decoded = parseJwt(token)
+    if (decoded && decoded.exp) {
+      const expTime = decoded.exp * 1000
+      const now = Date.now()
+      const fiveMinutes = 5 * 60 * 1000
+
+      if (now > expTime) {
+        // Already expired
+        localStorage.removeItem("token")
+        router.replace("/auth")
+        return
+      } else if (expTime - now < fiveMinutes) {
+        // Warning: expiring soon (could use a toast here)
+        console.warn("[Auth] Session expiring in less than 5 minutes.")
+      }
+    }
+
     // Validate token with backend — gracefully handles network failures
     verifyToken().then((valid) => {
       if (!valid) {
         // Token is expired or rejected by backend
         localStorage.removeItem("token")
+        localStorage.removeItem("user")
         router.replace("/auth")
       } else {
         setAuthorized(true)
@@ -57,12 +76,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   // Determine current page title
   const pageTitle = pathname === "/dashboard" ? "Dashboard" :
-    pathname === "/meeting/live" ? "Live Session" :
-      pathname === "/meeting/scrum" ? "Scrum Analysis" :
-        pathname === "/meeting/chat" ? "Meeting Chat" :
-          pathname.startsWith("/meetings") ? "Meetings" :
-            pathname.startsWith("/scrum") ? "Scrum Boards" :
-              pathname.startsWith("/history") ? "Activity Logs" : "Dashboard"
+    pathname === "/onboarding-jobs" ? "Job Manager" :
+      pathname === "/meeting/live" ? "Live Session" :
+        pathname === "/meeting/scrum" ? "Scrum Analysis" :
+          pathname === "/meeting/chat" ? "Meeting Chat" :
+            pathname.startsWith("/meetings") ? "Meetings" :
+              pathname.startsWith("/scrum") ? "Scrum Boards" :
+                pathname.startsWith("/history") ? "Activity Logs" : "Dashboard"
+
+  // Determine current page subtitle
+  const pageSubtitle = pathname === "/dashboard" ? "Intelligence Overview" :
+    pathname === "/onboarding-jobs" ? "Onramp contextual profiles for specialized AI training." :
+      pathname === "/meeting/live" ? "Real-time communication and analysis." :
+        pathname === "/meeting/scrum" ? "AI-driven agile insights." :
+          pathname === "/meeting/chat" ? "Team collaboration history." :
+            pathname.startsWith("/meetings") ? "Past and upcoming sessions." :
+              pathname.startsWith("/history") ? "System activity records." : "Intelligence Overview"
 
   return (
     <div className="relative min-h-dvh bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500">
@@ -96,7 +125,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </button>
               <div className="flex flex-col">
                 <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-none">{pageTitle}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 hidden sm:block">Intelligence Overview</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 hidden sm:block">
+                  {pageSubtitle}
+                </span>
               </div>
             </div>
 

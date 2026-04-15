@@ -98,3 +98,4 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Upstream request failed", detail: err.message }, { status: 502 })
     }
 }
+

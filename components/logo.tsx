@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 interface LogoProps {
     className?: string
@@ -14,11 +16,82 @@ export function Logo({
     className,
     iconOnly = false,
     variant = "default",
-    concept = "intel-core"
+    concept = "neural-spark"
 }: LogoProps) {
+    const { resolvedTheme } = useTheme()
+    const [mounted, setMounted] = useState(false)
+    
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    const isDarkMode = mounted ? resolvedTheme === "dark" : true // Default to dark for hydration safety
 
     const renderIcon = () => {
         switch (concept) {
+            case "neural-spark":
+                return (
+                    <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
+                        {/* Rounded Container Backdrop */}
+                        <motion.rect 
+                            x="4" y="4" width="32" height="32" rx="10" 
+                            className="transition-colors duration-500"
+                            fill={isDarkMode ? "#0F172A" : "#1E1B4B"}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.5 }}
+                        />
+                        <rect 
+                            x="4" y="4" width="32" height="32" rx="10" 
+                            stroke={isDarkMode ? "url(#grad-spark-border)" : "#312E81"} 
+                            strokeWidth="1" 
+                            strokeOpacity={isDarkMode ? "0.3" : "1"} 
+                        />
+                        
+                        {/* Main Sparkle Path */}
+                        <motion.path
+                            d="M20 10C20 16 19 19 13 20C19 21 20 24 20 30C20 24 21 21 27 20C21 19 20 16 20 10Z"
+                            fill="url(#grad-spark-main)"
+                            initial={{ scale: 0.5, rotate: -45, opacity: 0 }}
+                            animate={{ scale: 1.1, rotate: 0, opacity: 1 }}
+                            transition={{ 
+                                type: "spring", 
+                                stiffness: 200, 
+                                damping: 15,
+                                repeat: Infinity,
+                                repeatType: "reverse",
+                                repeatDelay: 3
+                            }}
+                        />
+                        
+                        {/* Secondary Accent Sparkles */}
+                        <motion.circle 
+                            cx="13" cy="13" r="1.5" fill="#22D3EE"
+                            animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.2, 0.8] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                        />
+                        <motion.circle 
+                            cx="27" cy="27" r="1" fill="#818CF8"
+                            animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.2, 0.8] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                        />
+
+                        <defs>
+                            <linearGradient id="grad-spark-bg" x1="4" y1="4" x2="36" y2="36">
+                                <stop stopColor="#0F172A" />
+                                <stop offset="1" stopColor="#1E293B" />
+                            </linearGradient>
+                            <linearGradient id="grad-spark-border" x1="4" y1="4" x2="36" y2="36">
+                                <stop stopColor="#22D3EE" />
+                                <stop offset="1" stopColor="#6366F1" />
+                            </linearGradient>
+                            <linearGradient id="grad-spark-main" x1="13" y1="10" x2="27" y2="30">
+                                <stop stopColor="#22D3EE" />
+                                <stop offset="1" stopColor="#818CF8" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                )
             case "intel-core":
                 return (
                     <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
@@ -113,8 +186,10 @@ export function Logo({
 
             {!iconOnly && (
                 <span className={cn(
-                    "font-black text-xl tracking-tighter uppercase italic select-none",
-                    variant === "white" ? "text-white" : "text-slate-900 dark:text-white"
+                    "font-black text-xl tracking-tighter uppercase italic select-none transition-colors",
+                    variant === "white" 
+                        ? "text-white" 
+                        : "bg-gradient-to-r from-indigo-900 to-blue-800 bg-clip-text text-transparent dark:from-white dark:to-white/80 dark:bg-none dark:text-white"
                 )}>
                     Vocaris
                 </span>

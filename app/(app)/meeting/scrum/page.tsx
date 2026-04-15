@@ -71,7 +71,7 @@ function ScrumBoardContent() {
                 setError("")
                 console.log("📡 Fetching Scrum data for:", botId)
 
-                const data = await apiFetch(`/meeting-transcripts?bot_id=${botId}&mode=scrum&auto_process=true`)
+                const data = await apiFetch(`/meeting-transcripts/${botId}?mode=scrum&auto_process=false`)
                 console.log("✅ Scrum API Response:", data)
 
                 if (data.is_processing) {
@@ -229,7 +229,7 @@ function ScrumBoardContent() {
                     transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
                     className="absolute -bottom-[15%] -right-[15%] w-[80%] h-[80%] bg-indigo-600/[0.04] dark:bg-indigo-600/[0.08] rounded-full blur-[160px]"
                 />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] dark:opacity-[0.04] mix-blend-overlay pointer-events-none" />
+                <div className="absolute inset-0 bg-noise opacity-[0.02] dark:opacity-[0.04] mix-blend-overlay pointer-events-none" />
             </div>
 
             <main className="relative z-10 p-4 lg:p-0 no-scrollbar">

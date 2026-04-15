@@ -6,7 +6,8 @@ export async function POST(
 ) {
     try {
         const authHeader = req.headers.get("Authorization")
-        const { eventId } = params
+        // In Next.js 15, params must be awaited
+        const { eventId } = await params
         const backendUrl = `https://vocaris-ztudf.ondigitalocean.app/api/v1/calendar/auto-join/disable/${eventId}`
 
         const backendRes = await fetch(backendUrl, {

@@ -10,6 +10,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { verifyToken } from "@/lib/api"
+import { setAuthCookie } from "@/lib/auth-cookies"
 
 export default function AuthPage() {
   const router = useRouter()
@@ -28,6 +29,7 @@ export default function AuthPage() {
     // Validate existing token — if valid, redirect to onboarding selection
     verifyToken().then((valid) => {
       if (valid) {
+        setAuthCookie(token)
         router.replace("/dashboard")
       } else {
         // Token is stale — clear it and show login

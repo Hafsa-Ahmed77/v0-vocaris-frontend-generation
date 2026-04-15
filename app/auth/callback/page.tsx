@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { setAuthCookie } from "@/lib/auth-cookies"
 
 export default function AuthCallbackPage() {
   const router = useRouter()
@@ -17,8 +18,9 @@ export default function AuthCallbackPage() {
       return
     }
 
-    // Save token in localStorage (dev only)
+    // Save token for both client and server access
     localStorage.setItem("token", token)
+    setAuthCookie(token)
 
     // 🔐 Fetch user info using proxy
     fetch(`/api/auth/me`, {

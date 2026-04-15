@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSearchParams } from "next/navigation"
-import { apiFetch, getUserSessions, getMeetingStatus, endMeeting } from "@/lib/api"
+import { apiFetch, getUserSessions, getMeetingStatus, endMeeting, getMeetingTranscripts } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 type MeetingStatus = {
@@ -102,10 +102,10 @@ export default function MeetingLivePage() {
     try {
       console.log("📡 [MeetingLive] Triggering definitive transcript fetch...")
       const mode = isScrum ? "scrum" : "simple"
-      // We call this once to ensure transcripts are ready/processed on backend
-      const url = `/meeting-transcripts?bot_id=${botId}&session_id=${sessionId}&mode=${mode}&format=json&auto_process=true`
-
-      await apiFetch(url, { method: "GET" })
+      
+      // Use the standardized API helper which now follows OAS 1.0.0 path structure
+      await getMeetingTranscripts(botId, mode, true)
+      
       setResultsReady(true)
     } catch (e: any) {
       console.error("Final results fetch failed:", e.message)

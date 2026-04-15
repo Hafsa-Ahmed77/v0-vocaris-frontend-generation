@@ -18,11 +18,13 @@ import {
   LogOut,
   ChevronUp,
   User as UserIcon,
+  Briefcase,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/onboarding-jobs", label: "Job Manager", icon: Briefcase },
   { href: "/meeting/scrum", label: "Scrum Analysis", icon: ListChecks },
   { href: "/meeting/chat", label: "Meeting Chat", icon: MessageSquare },
 ]
@@ -93,7 +95,7 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
       {/* Logo Section */}
       <div className="flex h-16 items-center justify-between px-6">
         <Link href="/">
-          <Logo className="scale-75 origin-left" />
+          <Logo className="scale-75 origin-left" variant="white" />
         </Link>
         {isMobile && (
           <button

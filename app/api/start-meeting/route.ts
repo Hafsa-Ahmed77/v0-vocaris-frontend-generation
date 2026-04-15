@@ -7,6 +7,7 @@ export async function POST(req: NextRequest) {
 
         const payload = {
             meeting_url: body.meeting_url?.trim(),
+            job_id: body.job_id || undefined,
             bot_name: body.bot_name?.trim() || "Vocaris AI",
             meeting_title: body.meeting_title || (body.is_scrum ? "Scrum Meeting" : "New Meeting"),
             is_scrum: body.is_scrum || false,

@@ -67,7 +67,7 @@ export default function OnboardingSelectionPage() {
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-4xl mx-auto px-6 py-12 flex flex-col justify-center relative z-10">
+            <main className="flex-1 w-full max-w-2xl mx-auto px-6 py-12 flex flex-col justify-center relative z-10">
                 {/* Hero HUD */}
                 <div className="flex flex-col items-center text-center space-y-4 mb-10">
                     <motion.div
@@ -75,67 +75,44 @@ export default function OnboardingSelectionPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         className="px-4 py-1 rounded-full border border-blue-500/20 bg-blue-500/5 backdrop-blur-md"
                     >
-                        <span className="text-[9px] font-black tracking-[0.3em] text-blue-500 uppercase">Getting Started</span>
+                        <span className="text-[9px] font-black tracking-[0.3em] text-blue-500 uppercase">Core Extraction</span>
                     </motion.div>
-
+ 
                     <div className="space-y-2">
                         <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9]">
-                            Setup your <br />
-                            <span className="text-blue-600 dark:text-blue-400">assistant</span>
+                            Neural Sync <br />
+                            <span className="text-blue-600 dark:text-blue-400">Baseline</span>
                         </h1>
                         <p className={cn(
                             "text-xs md:text-sm font-bold uppercase tracking-widest max-w-lg mx-auto",
                             isDarkMode ? "text-slate-300" : "text-slate-600"
                         )}>
-                            Pick how you want to introduce yourself to your AI partner.
+                            Establish your voice print and mission objectives.
                         </p>
                     </div>
                 </div>
-
-                {/* Grid - No Scrollbars */}
-                <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-                    <SelectionCard
-                        title="Quick Voice Intro"
-                        desc="Just talk for 1 minute! Our AI will learn about your goals and style automatically."
-                        icon={<AudioLines className="w-8 h-8" />}
-                        tags={["Fastest", "Recommended"]}
-                        isSelected={selectedMode === 'voice'}
-                        onClick={() => {
-                            setSelectedMode('voice')
-                            localStorage.setItem("vocaris_theme", "purple")
-                            setTimeout(() => router.push("/onboarding-conversation?theme=purple"), 600)
-                        }}
-                        isDark={isDarkMode}
-                        type="voice"
-                    />
-
-                    <SelectionCard
-                        title="Simple Setup Form"
-                        desc="Prefer typing? Fill out a quick form to set your preferences manually."
-                        icon={<FileText className="w-8 h-8" />}
-                        tags={["Manual", "Easy"]}
-                        isSelected={selectedMode === 'form'}
-                        onClick={() => {
-                            setSelectedMode('form')
-                            localStorage.setItem("vocaris_theme", "blue")
-                            setTimeout(() => router.push("/onboarding-form?theme=blue"), 600)
-                        }}
-                        isDark={isDarkMode}
-                        type="form"
-                    />
+ 
+                {/* Single Selection - System B Only */}
+                <div className="flex justify-center">
+                    <div className="w-full max-w-md">
+                        <SelectionCard
+                            title="AI Voice Uplink"
+                            desc="Talk for 1-2 minutes. Our AI will extract your career profile and goals automatically via neural sync."
+                            icon={<AudioLines className="w-8 h-8" />}
+                            tags={["Required", "Neural Sync"]}
+                            isSelected={selectedMode === 'voice'}
+                            onClick={() => {
+                                setSelectedMode('voice')
+                                localStorage.setItem("vocaris_theme", "purple")
+                                setTimeout(() => router.push("/onboarding-conversation?theme=purple"), 600)
+                            }}
+                            isDark={isDarkMode}
+                            type="voice"
+                        />
+                    </div>
                 </div>
 
-                <div className="mt-10 text-center">
-                    <button
-                        onClick={() => router.push("/dashboard")}
-                        className={cn(
-                            "text-[10px] font-black uppercase tracking-[0.4em] hover:text-blue-500 transition-all group flex items-center justify-center mx-auto",
-                            isDarkMode ? "text-slate-400" : "text-slate-500"
-                        )}
-                    >
-                        Skip for now <ArrowRight className="w-3 h-3 ml-3 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                </div>
+                {/* Skip option removed to keep flow focused on required Voice Onboarding */}
             </main>
 
             <footer className="relative z-50 p-6 flex justify-between items-center opacity-30 select-none">

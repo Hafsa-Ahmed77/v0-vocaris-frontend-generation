@@ -25,6 +25,7 @@ export function UpcomingMeetings({ items }: { items: Meeting[] }) {
       setLoadingIds((prev) => [...prev, eventId])
       await enableAutoJoin(eventId)
       mutate("calendar-events")
+      mutate("scheduled-meetings")
     } catch (err) {
       console.error(err)
     } finally {
@@ -38,6 +39,7 @@ export function UpcomingMeetings({ items }: { items: Meeting[] }) {
       setLoadingIds((prev) => [...prev, eventId])
       await disableAutoJoin(eventId)
       mutate("calendar-events")
+      mutate("scheduled-meetings")
     } catch (err) {
       console.error(err)
     } finally {
@@ -121,7 +123,7 @@ export function UpcomingMeetings({ items }: { items: Meeting[] }) {
                       ? "bg-emerald-500 text-white dark:text-[#0A0F1E] border-emerald-400"
                       : "bg-slate-50 dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10"
                   )}>
-                    {isEnabled ? "Live Agent Active" : "Standby"}
+                    {isEnabled ? "Auto Join Enabled" : "Standby"}
                   </span>
                 </div>
 

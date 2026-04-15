@@ -1,6 +1,11 @@
 // lib/api.ts
+import { clearAuthCookie } from "./auth-cookies"
 
 // lib/api.ts
+/**
+ * Global API fetch wrapper with automatic auth header injection
+ * and global 401 (Unauthorized) handling.
+ */
 export async function apiFetch(
   path: string,
   options: RequestInit = {}
@@ -10,7 +15,11 @@ export async function apiFetch(
       ? localStorage.getItem("token")
       : null
 
-  const res = await fetch(`/api${path}`, {
+  // Normalize path to prevent double/triple slashes
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const fullPath = `/api${normalizedPath}`.replace(/\/+/g, '/');
+
+  const res = await fetch(fullPath, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -18,6 +27,14 @@ export async function apiFetch(
       ...(options.headers || {}),
     },
   })
+
+  // Global 401 Handling: If unauthorized, clear local session and redirect to login
+  if (res.status === 401 && typeof window !== 'undefined') {
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    window.location.href = "/auth"
+    throw new Error("Session expired. Please login again.")
+  }
 
   if (!res.ok) {
     const errorText = await res.text()
@@ -29,8 +46,7 @@ export async function apiFetch(
 
 /**
  * Verifies the current user's token against the backend.
- * Returns true if valid (or if backend is unreachable — graceful degradation).
- * Returns false only if the backend explicitly says the token is invalid/expired.
+ * Returns true if valid, false if expired/invalid.
  */
 export async function verifyToken(): Promise<boolean> {
   if (typeof window === "undefined") return true
@@ -43,15 +59,31 @@ export async function verifyToken(): Promise<boolean> {
       headers: { Authorization: `Bearer ${token}` },
     })
 
+    if (res.status === 401) return false
+
     const data = await res.json().catch(() => ({ valid: true }))
-
-    // skipped means backend was unreachable — don't log the user out
-    if (data.skipped) return true
-
     return data.valid === true
-  } catch {
-    // Network failure — don't log user out
+  } catch (err) {
+    console.error("Token verification failed:", err)
+    // Network failure — assume valid to avoid aggressive logout
     return true
+  }
+}
+
+/**
+ * Utility to parse JWT token without external libraries.
+ * Useful for checking 'exp' claim locally.
+ */
+export function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    }).join(''))
+    return JSON.parse(jsonPayload)
+  } catch (e) {
+    return null
   }
 }
 
@@ -75,9 +107,10 @@ export async function logout(): Promise<void> {
   } catch {
     // Backend unreachable — still log out locally
   } finally {
-    // Always clear local storage
+    // Always clear local storage and cookies
     localStorage.removeItem("token")
     localStorage.removeItem("user")
+    clearAuthCookie()
   }
 }
 
@@ -110,6 +143,15 @@ export function getMeetingStatus(botId: string) {
   return apiFetch(`/meeting-status?bot_id=${botId}`)
 }
 
+/**
+ * End All Meetings: Bulk terminate all active bots for the current user.
+ */
+export async function endAllMeetings() {
+  return apiFetch(`/meeting-end-all`, {
+    method: "POST",
+  })
+}
+
 // Stats / analytics
 export function getMeetingStats() {
   return apiFetch("/meeting-stats")
@@ -136,26 +178,58 @@ export function disableAutoJoin(eventId: string) {
 }
 
 // Start a meeting manually
-export function startMeeting(meetingUrl: string, isScrum = false, title?: string) {
+export function startMeeting(meetingUrl: string, isScrum = false, title?: string, jobId?: string) {
   return apiFetch("/start-meeting", {
     method: "POST",
     body: JSON.stringify({
       meeting_url: meetingUrl,
       is_scrum: isScrum,
-      meeting_title: title
+      meeting_title: title,
+      job_id: jobId
     }),
   })
 }
 
-// Get meeting transcripts / tickets
-export function getMeetingTranscripts(botId: string, mode = "simple") {
-  return apiFetch(`/meeting-transcripts?bot_id=${botId}&mode=${mode}`)
+// Get general meeting transcripts / tickets (System A)
+export function getMeetingTranscripts(botId: string, mode = "simple", autoProcess = true) {
+  return apiFetch(`/meeting-transcripts/${botId}?mode=${mode}&auto_process=${autoProcess}`)
 }
 
-// End a specific meeting
+/**
+ * Query Meeting Transcript: Standardized RAG query for a specific bot.
+ */
+export async function queryMeetingTranscript(botId: string, query: string, topK: number = 5) {
+  return apiFetch(`/meeting-transcripts/${botId}/query`, {
+    method: "POST",
+    body: JSON.stringify({
+      query,
+      top_k: topK,
+      include_sources: true
+    }),
+  })
+}
+
+// Get Voice Meeting (Onboarding) specific transcripts (System B)
+export function getVoiceMeetingTranscripts(sessionId: string) {
+  return apiFetch(`/voice-meeting/transcripts/${sessionId}`)
+}
+
+// Get Voice Meeting (Onboarding) status (System B)
+export function getVoiceMeetingStatus(sessionId: string) {
+  return apiFetch(`/voice-meeting/status/${sessionId}`)
+}
+
+// End a general meeting session (System A)
 export function endMeeting(botId: string) {
   return apiFetch(`/end-meeting?bot_id=${botId}`, {
     method: "POST",
+  })
+}
+
+// End a Voice Meeting (Onboarding) session (System B)
+export function endVoiceMeeting(sessionId: string) {
+  return apiFetch(`/voice-meeting/${sessionId}`, {
+    method: "DELETE",
   })
 }
 
@@ -192,3 +266,66 @@ export function createClickUpTask(data: {
     body: JSON.stringify(data),
   })
 }
+
+/* =========================
+   VOICE MEETING - JOBS
+========================= */
+
+// Create a new job for a user
+export function createJob(params: {
+  company_name: string
+  role: string
+  description?: string
+}) {
+  const query = new URLSearchParams({
+    company_name: params.company_name,
+    role: params.role,
+    ...(params.description ? { description: params.description } : {}),
+  }).toString()
+  return apiFetch(`/voice-meeting/jobs/create?${query}`, { method: "POST" })
+}
+
+// Get all jobs for the currently authenticated user
+export function getUserJobs() {
+  return apiFetch(`/voice-meeting/jobs/mine`)
+}
+
+// Get specific job details
+export function getJobDetails(jobId: string) {
+  return apiFetch(`/voice-meeting/jobs/${jobId}`)
+}
+
+// Update a job
+export function updateJob(jobId: string, params: { company_name?: string, role?: string, description?: string }) {
+  return apiFetch(`/voice-meeting/jobs/${jobId}`, {
+    method: "PATCH",
+    body: JSON.stringify(params),
+  })
+}
+
+// Delete a job
+export function deleteJob(jobId: string) {
+  return apiFetch(`/voice-meeting/jobs/${jobId}`, {
+    method: "DELETE",
+  })
+}
+
+// Start a voice meeting with a specific job context
+export function startVoiceMeetingWithJob(params: {
+  job_id: string
+}) {
+  const query = new URLSearchParams({
+    job_id: params.job_id,
+  }).toString()
+  return apiFetch(`/voice-meeting/ws/start-with-job?${query}`, { method: "POST" })
+}
+
+
+// Update (correct) a voice message transcript (Session B)
+export function updateVoiceMessage(sessionId: string, messageIndex: number, message: string) {
+  return apiFetch(`/voice-meeting/sessions/${sessionId}/messages/${messageIndex}`, {
+    method: "PATCH",
+    body: JSON.stringify({ new_message: message }),
+  })
+}
+

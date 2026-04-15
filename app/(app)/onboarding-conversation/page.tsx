@@ -19,14 +19,29 @@ import {
   Waves,
   Loader2,
   Moon,
-  Sun
+  Sun,
+  Briefcase,
+  Plus,
+  Building2,
+  Check,
+  Edit2,
+  Save,
+  RotateCcw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import {
+  getUserJobs, createJob, startVoiceMeetingWithJob,
+  getVoiceMeetingTranscripts,
+  getVoiceMeetingStatus,
+  updateVoiceMessage,
+  endVoiceMeeting,
+} from "@/lib/api"
 
-type Transcript = { speaker: "user" | "agent"; text: string }
+type Transcript = { speaker: "user" | "agent"; text: string; message_id?: string }
+type Job = { job_id: string; company_name: string; role: string; description?: string }
 
 export default function OnboardingConversation() {
   const router = useRouter()
@@ -38,19 +53,163 @@ export default function OnboardingConversation() {
   const [agentSpeaking, setAgentSpeaking] = useState(false)
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [mappingProgress, setMappingProgress] = useState(0)
-  const [timeLeft, setTimeLeft] = useState(60)
+  const [timeLeft, setTimeLeft] = useState(90)
   const [isInterrupted, setIsInterrupted] = useState(false)
   const [isGracefulEnd, setIsGracefulEnd] = useState(false)
   const [hasStartedTalking, setHasStartedTalking] = useState(false)
 
   const [isDarkMode, setIsDarkMode] = useState(true)
-  const [theme, setTheme] = useState<"purple" | "blue">("blue")
+  const [theme, setTheme] = useState<"purple" | "blue">("purple")
 
+  // Job context — selected inline in the entry screen
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [jobsLoading, setJobsLoading] = useState(true)
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [showNewJobForm, setShowNewJobForm] = useState(false)
+  const [newJobForm, setNewJobForm] = useState({ company_name: "", role: "", description: "" })
+  const [creatingJob, setCreatingJob] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // Transcript Editing State
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null)
+  const [editValue, setEditValue] = useState("")
+  const [isUpdatingMessage, setIsUpdatingMessage] = useState(false)
+
+  const [currentBotId, setCurrentBotId] = useState<string | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const botIdRef = useRef<string | null>(null)
   const timerStartedRef = useRef(false)
+  const gracefulEndRef = useRef(false)
+  const syncingRef = useRef(false)
+
+  // Load user ID and jobs on mount
+  // Tries multiple common field names since the backend User schema may vary
+  useEffect(() => {
+    const raw = localStorage.getItem("user")
+    if (raw) {
+      try {
+        const u = JSON.parse(raw)
+        // Try all plausible user_id field names from the backend
+        const uid = u.user_id || u.id || u.sub || u.uuid || null
+        if (uid) {
+          setCurrentUserId(uid)
+          getUserJobs()
+            .then((data: any) => {
+              // Backend might return array directly or { jobs: [...] }
+              const list = Array.isArray(data) ? data : (data?.jobs || [])
+              // Normalize jobs to ensure they have job_id field
+              const normalizedJobs = list.map((j: any) => ({
+                ...j,
+                job_id: j.job_id || j.id || j.uuid
+              }))
+              setJobs(normalizedJobs)
+
+              // Auto-select job if passed from Job Manager
+              const passedJobId = searchParams.get("job_id")
+              const passedSessionId = searchParams.get("session_id")
+              
+              if (passedJobId) {
+                const match = normalizedJobs.find((j: any) => j.job_id === passedJobId)
+                if (match) {
+                  setSelectedJob(match)
+                  
+                  // Defensive Check: If we have a job but no session_id in URL,
+                  // check if this job ALREADY has an onboarding session.
+                  if (!passedSessionId) {
+                    console.log(`[Onboarding] 🛡️ Checking for existing session for Job: ${passedJobId}`)
+                    getJobDetails(passedJobId).then((details: any) => {
+                      const sessions = details?.conversation_sessions || details?.voice_sessions || details?.onboarding_sessions || details?.sessions || []
+                      if (sessions && sessions.length > 0) {
+                        const sess = sessions[0]
+                        const sid = sess.session_id || sess.bot_id || sess.id || sess.uuid
+                        console.log(`[Onboarding] ⚡ Job already onboarded. Auto-linking session ${sid}`)
+                        botIdRef.current = sid
+                        setCurrentBotId(sid)
+                        syncTranscripts(sid)
+                      }
+                    }).catch(err => console.warn("[Onboarding] Job detail check failed:", err))
+                  }
+                }
+              }
+
+              if (passedSessionId) {
+                botIdRef.current = passedSessionId
+                setCurrentBotId(passedSessionId)
+                // Trigger sync immediately for review mode
+                syncTranscripts(passedSessionId)
+              }
+            })
+            .catch(() => setJobs([]))
+            .finally(() => setJobsLoading(false))
+        } else {
+          setJobsLoading(false)
+        }
+        const name = u.first_name || u.name || u.display_name || ""
+        if (name) setUserName(name)
+      } catch { setJobsLoading(false) }
+    } else {
+      setJobsLoading(false)
+    }
+  }, [])
+
+  const [jobCreateError, setJobCreateError] = useState<string | null>(null)
+
+  const handleCreateJob = async () => {
+    setJobCreateError(null)
+    if (!currentUserId) {
+      setJobCreateError("User session not found. Please refresh and try again.")
+      return
+    }
+    if (!newJobForm.company_name.trim() || !newJobForm.role.trim()) {
+      setJobCreateError("Company name and role are required.")
+      return
+    }
+    setCreatingJob(true)
+    try {
+      const created: any = await createJob({
+        company_name: newJobForm.company_name.trim(),
+        role: newJobForm.role.trim(),
+        description: newJobForm.description.trim() || undefined,
+      })
+      console.log("[JobCreate] Response:", created)
+
+      const fresh: any = await getUserJobs()
+      console.log("[JobCreate] Fresh list:", fresh)
+
+      // The backend returns { jobs: [...] } instead of direct array
+      const rawList = Array.isArray(fresh) ? fresh : (fresh?.jobs || [])
+
+      // Normalize jobs to ensure they have job_id field
+      const normalizedList = rawList.map((j: any) => ({
+        ...j,
+        job_id: j.job_id || j.id || j.uuid
+      }))
+
+      setJobs(normalizedList)
+
+      // Auto-select the newly created job
+      const targetId = created?.job_id || created?.id || created?.uuid
+      const newJob = normalizedList.find((j: any) => j.job_id === targetId) || normalizedList[normalizedList.length - 1]
+
+      if (newJob) {
+        console.log("[JobCreate] Selecting job:", newJob)
+        setSelectedJob(newJob)
+        setShowNewJobForm(false)
+        setNewJobForm({ company_name: "", role: "", description: "" })
+      } else {
+        console.warn("[JobCreate] No job found to select")
+      }
+    } catch (e: any) {
+      console.error("[JobCreate] Error:", e)
+      setJobCreateError("Failed to create job. Check your connection and try again.")
+    }
+    setCreatingJob(false)
+  }
 
   // Initialize theme from URL or localStorage
   useEffect(() => {
@@ -109,17 +268,18 @@ export default function OnboardingConversation() {
       setMappingProgress(0)
       return
     }
-    const elapsed = 60 - timeLeft
-    setMappingProgress(Math.min(100, Math.floor((elapsed / 60) * 100)))
+    const elapsed = 90 - timeLeft
+    setMappingProgress(Math.min(100, Math.floor((elapsed / 90) * 100)))
   }, [timeLeft, hasStartedTalking])
 
+  // 🔍 Scroll to bottom on transcript update
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
     }
   }, [transcripts])
 
-  // Prefetch Dashboard when session ends or is about to end
+
   useEffect(() => {
     if (timeLeft === 0 && status === "connected") {
       router.prefetch("/dashboard")
@@ -138,17 +298,133 @@ export default function OnboardingConversation() {
     }
   }
 
+  const handleEditMessage = (id: string, text: string, index: number) => {
+    setEditingMessageId(id)
+    setEditingMessageIndex(index)
+    setEditValue(text)
+  }
+
+  const saveEdit = async (messageId: string) => {
+    if (!editValue.trim() || isUpdatingMessage || editingMessageIndex === null || !currentBotId) return
+    setIsUpdatingMessage(true)
+
+    try {
+      console.log(`[NeuralSync] Updating message at index ${editingMessageIndex} for session ${currentBotId}`)
+      
+      // The backend now expects the zero-based index of the message in the conversation
+      await updateVoiceMessage(currentBotId, editingMessageIndex, editValue.trim())
+
+      // Update local state
+      setTranscripts(prev => prev.map((t, idx) =>
+        idx === editingMessageIndex ? { ...t, text: editValue.trim() } : t
+      ))
+      
+      setEditingMessageId(null)
+      setEditingMessageIndex(null)
+      setEditValue("")
+    } catch (error: any) {
+      console.error("Failed to update message:", error)
+      alert(error.message || "Failed to update transcript. Please try again.")
+    } finally {
+      setIsUpdatingMessage(false)
+    }
+  }
+
+  const syncTranscripts = async (botId: string, retryCount = 0) => {
+    if (!botId || syncingRef.current) return
+    setIsSyncing(true)
+    syncingRef.current = true
+    try {
+      console.log(`[NeuralSync] Attempting sync for bot: ${botId} (retry: ${retryCount})`)
+      // 🛡️ DONT clear transcripts here. Keep live chat visible until official sync completes.
+
+      console.log(`[NeuralSync] Attempting sync for session: ${botId} (retry: ${retryCount})`)
+      // 🛡️ Wait 5 seconds initially to let backend finalize segments (as per user/backend suggestion)
+      if (retryCount === 0) await new Promise(r => setTimeout(r, 5000))
+
+      try {
+        // 🔬 Attempt 1: Dedicated Voice-Meeting System (System B)
+        console.log(`[NeuralSync] [SystemB] Fetching transcripts for ${botId}... (Retry: ${retryCount})`)
+        const data = await getVoiceMeetingTranscripts(botId)
+        console.log(`[NeuralSync] [SystemB] FULL RESPONSE:`, JSON.stringify(data, null, 2))
+
+        let transcriptList = Array.isArray(data) ? data : (data?.transcripts || data?.data || [])
+
+        if (transcriptList && Array.isArray(transcriptList) && transcriptList.length > 0) {
+          console.log(`[NeuralSync] SUCCESS: Captured ${transcriptList.length} items`)
+
+          // Sort by timestamp if available
+          const sorted = [...transcriptList].sort((a, b) => {
+            const timeA = new Date(a.timestamp || 0).getTime()
+            const timeB = new Date(b.timestamp || 0).getTime()
+            return timeA - timeB
+          })
+
+          setTranscripts(sorted.map((item: any) => {
+            const role = (item.role || item.speaker || "").toLowerCase()
+            const isUser = ['user', 'customer', 'human', 'caller'].includes(role)
+            return {
+              speaker: isUser ? 'user' : 'agent',
+              text: (item.message || item.content || item.text || "").trim(),
+              message_id: item.message_id || item.id
+            }
+          }))
+          setIsSyncing(false)
+          syncingRef.current = false
+        } else if (retryCount < 8) {
+          const delay = 5000
+          console.warn(`[NeuralSync] Transcripts not ready or empty. Retrying in ${delay / 1000}s... (Attempt ${retryCount + 1})`)
+          // 🛡️ DONT set syncingRef/isSyncing to false yet, we ARE retrying
+          setTimeout(() => {
+            syncingRef.current = false // Allow retry call to proceed
+            syncTranscripts(botId, retryCount + 1)
+          }, delay)
+        } else {
+          setIsSyncing(false)
+          syncingRef.current = false
+          console.error("[NeuralSync] All sync attempts exhausted.")
+        }
+      } catch (err: any) {
+        const errorMsg = err.message || ""
+        console.error(`[NeuralSync] Voice Meeting transcripts fetch failed:`, errorMsg)
+
+        setIsSyncing(false)
+        syncingRef.current = false
+        if (retryCount < 5) {
+          setTimeout(() => syncTranscripts(botId, retryCount + 1), 6000)
+        }
+      }
+    } finally {
+      setIsSyncing(false)
+      syncingRef.current = false
+    }
+  }
+
   const startMeeting = async () => {
-    if (!userName.trim()) return
+    if (status === "connecting") return
+    const jid = selectedJob?.job_id || (selectedJob as any)?.id || (selectedJob as any)?.uuid
+    if (!currentUserId || !jid) return
+
     setStatus("connecting")
     setIsInterrupted(false)
+    setIsGracefulEnd(false)
+    gracefulEndRef.current = false
+    setTimeLeft(90) // Always reset timer for fresh extraitction
     try {
-      const res = await fetch("/api/voice-meeting-proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_name: userName, enable_dynamic_questions: true }),
+      const data = await startVoiceMeetingWithJob({
+        job_id: jid,
       })
-      const data = await res.json()
+
+      if (data.session_id) {
+        setCurrentBotId(data.session_id)
+        botIdRef.current = data.session_id
+      } else {
+        // Fallback if session_id is not present, though it should be
+        const botId = data.bot_id || data.id
+        setCurrentBotId(botId)
+        botIdRef.current = botId
+      }
+      console.log(`[Onboarding] Initializing WebSocket: ${data.websocket_url}`)
       const ws = new WebSocket(data.websocket_url)
       wsRef.current = ws
       ws.onopen = async () => {
@@ -174,23 +450,41 @@ export default function OnboardingConversation() {
           const msg = JSON.parse(e.data)
           if (!msg || !msg.event) return
 
+          if (msg.event === "session_started" || msg.event === "bot_joined" || msg.bot_id) {
+            console.log("[Onboarding] Meta Event Detected:", msg)
+            const newId = msg.bot_id || msg.session_id || msg.id
+            if (newId && newId !== botIdRef.current) {
+              console.log(`[Onboarding] 🆔 ID Update: ${botIdRef.current} -> ${newId}`)
+              botIdRef.current = newId
+              setCurrentBotId(newId)
+            }
+          }
+
           if (msg.event === "audio.output" && msg.data?.audio) {
             playAudio(msg.data.audio)
           }
           if (msg.event === "message" && msg.data) {
+            // Normalize speaker roles immediately
+            const rawType = msg.data.type?.toLowerCase() || ""
+            const speakerRole = ['user', 'customer', 'human', 'caller'].includes(rawType) ? "user" : "agent"
+
             // 🛡️ Deduplication check (Robust: trim and normalize)
             const cleanText = msg.data.text?.trim()
             setTranscripts((p) => {
               const last = p[p.length - 1]
-              if (last && last.text.trim() === cleanText && last.speaker === msg.data.type) {
+              if (last && last.text.trim() === cleanText && last.speaker === speakerRole) {
                 return p
               }
-              return [...p, { speaker: msg.data.type, text: msg.data.text }]
+              return [...p, {
+                speaker: speakerRole,
+                text: msg.data.text,
+                message_id: msg.data.message_id || msg.data.id || `local-${Date.now()}-${Math.random()}`
+              }]
             })
 
             // Trigger talking state on first message
             if (!timerStartedRef.current) {
-              console.log("[Onboarding] First message received. Triggering timer.")
+              console.log("[Onboarding] First message received. Payload:", JSON.stringify(msg, null, 2))
               timerStartedRef.current = true
               setHasStartedTalking(true)
             }
@@ -218,6 +512,12 @@ export default function OnboardingConversation() {
               if (goodbyePhrases.some(phrase => text.includes(phrase))) {
                 console.log("[Onboarding] Goodbye/Completion detected. Marking as graceful end.")
                 setIsGracefulEnd(true)
+                gracefulEndRef.current = true
+                // Automatically end meeting to trigger sync & review mode
+                setTimeout(() => {
+                  console.log("[Onboarding] Triggering natural end meeting via goodbye detection")
+                  endMeeting(false) // Natural end
+                }, 2000)
               }
             }
           }
@@ -227,13 +527,32 @@ export default function OnboardingConversation() {
       }
       ws.onclose = () => {
         // Only set as interrupted if it wasn't a graceful end and significant time was left
-        if (!isGracefulEnd && timeLeft > 10 && status === "connected") {
+        if (!gracefulEndRef.current && timeLeft > 10 && status === "connected") {
+          console.log("[Onboarding] WebSocket closed unexpectedly. Status: interrupted.")
           setIsInterrupted(true)
+        } else {
+          console.log(`[Onboarding] WebSocket closed. Graceful: ${gracefulEndRef.current}, TimeLeft: ${timeLeft}`)
         }
         setStatus("disconnected")
-        setIsRecording(false)
         setAgentSpeaking(false)
         setStream(null)
+
+        // Use the Ref to ensure we always have the ID even if state is stale
+        const activeBotId = botIdRef.current
+        if (activeBotId) {
+          console.log(`[Onboarding] Starting final transcript sync for: ${activeBotId}`)
+          syncTranscripts(activeBotId)
+          
+          // 🎤 System B Status Verification
+          console.log(`[Onboarding] [SystemB] Verifying session finality for: ${activeBotId}`)
+          getVoiceMeetingStatus(activeBotId)
+            .then(statusData => {
+              console.log(`[Onboarding] [SystemB] Session Final Status:`, statusData)
+            })
+            .catch(err => {
+              console.warn(`[Onboarding] [SystemB] Status check failed:`, err.message)
+            })
+        }
       }
     } catch (error) {
       console.error("Failed to start meeting:", error)
@@ -241,20 +560,50 @@ export default function OnboardingConversation() {
     }
   }
 
-  const endMeeting = () => {
-    wsRef.current?.send(JSON.stringify({ event: "end_meeting" }))
-    wsRef.current?.close()
-    if (stream) { stream.getTracks().forEach(track => track.stop()); setStream(null) }
+  const endMeeting = async (manual = false) => {
+    console.log(`[Onboarding] endMeeting called. Manual: ${manual}, SessionID: ${botIdRef.current}, Status: ${status}`)
+    
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      console.log("[Onboarding] Sending end_meeting event via WS")
+      wsRef.current.send(JSON.stringify({ event: "end_meeting" }))
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    if (wsRef.current) {
+      console.log("[Onboarding] Closing WebSocket")
+      wsRef.current.close()
+    }
+    
+    if (stream) { 
+      console.log("[Onboarding] Stopping media tracks")
+      stream.getTracks().forEach(track => track.stop())
+      setStream(null) 
+    }
+
+    // 🧠 Finalize Backend Session ONLY IF MANUAL (User pressed Terminate)
+    if (manual && botIdRef.current) {
+      console.log(`[Onboarding] EXPLICIT TERMINATION requested for session: ${botIdRef.current}`)
+      try {
+        const res = await endVoiceMeeting(botIdRef.current)
+        console.log("[Onboarding] DELETE session response:", res)
+      } catch (err: any) {
+        console.warn("[Onboarding] DELETE session failed (expected if already ended):", err.message)
+      }
+    } else {
+      console.log("[Onboarding] Skipping DELETE call for natural/background end")
+    }
   }
 
   const resetSession = () => {
     setStatus("disconnected")
     setIsInterrupted(false)
     setIsGracefulEnd(false)
+    gracefulEndRef.current = false
     setHasStartedTalking(false)
     timerStartedRef.current = false
     setTranscripts([])
-    setTimeLeft(60)
+    setTimeLeft(90)
   }
 
   const toggleMic = () => {
@@ -360,7 +709,7 @@ export default function OnboardingConversation() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full flex flex-col md:flex-row relative z-10">
         <AnimatePresence mode="wait">
-          {(status === "disconnected" && transcripts.length === 0) || isInterrupted ? (
+          {((status === "disconnected" && transcripts.length === 0 && !gracefulEndRef.current && !syncingRef.current && !isSyncing) || isInterrupted) ? (
             <motion.div
               key={isInterrupted ? "interrupted" : "entry"}
               initial={{ opacity: 0 }}
@@ -396,7 +745,7 @@ export default function OnboardingConversation() {
                 <div className={cn("flex items-center justify-center gap-3 mb-2", isInterrupted ? "text-red-500" : themeClasses.text)}>
                   {isInterrupted ? <Zap className="w-4 h-4 animate-pulse" /> : <ShieldCheck className="w-4 h-4" />}
                   <span className="text-[10px] font-black uppercase tracking-[0.4em]">
-                    {isInterrupted ? "Uplink Terminated Prematurely" : "Neural Profile Sync"}
+                    {isInterrupted ? "Uplink Terminated Prematurely" : selectedJob ? `${selectedJob.role} @ ${selectedJob.company_name}` : "Neural Profile Sync"}
                   </span>
                 </div>
                 <h1 className="text-4xl md:text-7xl font-black tracking-tighter leading-none uppercase">
@@ -408,7 +757,9 @@ export default function OnboardingConversation() {
                 )}>
                   {isInterrupted
                     ? `The connection was lost with ${timeLeft}s remaining. Please re-establish the uplink.`
-                    : "Please identify yourself to begin your 60-second voice briefing."}
+                    : selectedJob
+                      ? `Vocaris AI will onboard you as ${selectedJob.role} at ${selectedJob.company_name}.`
+                      : "Select a job below so the AI knows your onboarding context."}
                 </p>
               </motion.div>
 
@@ -416,28 +767,115 @@ export default function OnboardingConversation() {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="mt-12 w-full max-w-sm space-y-4"
+                className="mt-10 w-full max-w-md space-y-5 text-left"
               >
                 {!isInterrupted && (
-                  <div className="relative group">
-                    <Terminal className={cn("absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40 group-focus-within:opacity-100 transition-opacity", themeClasses.text)} />
-                    <Input
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      placeholder="IDENTIFY YOURSELF..."
-                      className={cn(
-                        "h-14 border text-lg font-black rounded-xl pl-14 pr-6 transition-all tracking-widest uppercase placeholder:opacity-20",
-                        themeClasses.ring,
-                        isDarkMode ? "bg-white/[0.03] border-white/10" : "bg-slate-100 border-slate-200"
+                  <>
+                    {/* Job Selection */}
+                    <div className="space-y-3">
+
+                      <div className={cn("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest", themeClasses.textLight)}>
+                        <Briefcase className="w-3.5 h-3.5" />
+                        <span>Select Job for Onboarding</span>
+                      </div>
+
+                      {jobsLoading ? (
+                        <div className="flex items-center gap-2 py-3">
+                          <Loader2 className={cn("w-4 h-4 animate-spin", themeClasses.text)} />
+                          <span className="text-[10px] uppercase font-black tracking-widest text-slate-500">Loading jobs...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {jobs.map((job) => (
+                            <button
+                              key={job.job_id}
+                              onClick={() => setSelectedJob(selectedJob?.job_id === job.job_id ? null : job)}
+                              className={cn(
+                                "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wide transition-all",
+                                selectedJob?.job_id === job.job_id
+                                  ? cn(themeClasses.bg, "text-white border-transparent shadow-lg")
+                                  : (isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:border-white/20" : "bg-slate-100 border-slate-200 text-slate-600 hover:border-slate-300")
+                              )}
+                            >
+                              {selectedJob?.job_id === job.job_id && <Check className="w-3 h-3" />}
+                              <Building2 className="w-3 h-3" />
+                              {job.role} @ {job.company_name}
+                            </button>
+                          ))}
+
+                          {/* Add new job inline */}
+                          <button
+                            onClick={() => setShowNewJobForm(!showNewJobForm)}
+                            className={cn(
+                              "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wide transition-all",
+                              isDarkMode
+                                ? "border-dashed border-white/20 text-slate-400 hover:border-white/30 hover:text-slate-200"
+                                : "border-dashed border-slate-300 text-slate-400 hover:border-slate-400 hover:text-slate-600"
+                            )}
+                          >
+                            {showNewJobForm ? <span className="text-base leading-none">✕</span> : <Plus className="w-3 h-3" />}
+                            {showNewJobForm ? "Cancel" : "New Job"}
+                          </button>
+                        </div>
                       )}
-                    />
-                  </div>
+
+                      {/* Inline new job form */}
+                      <AnimatePresence>
+                        {showNewJobForm && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className={cn(
+                              "p-4 rounded-2xl border space-y-3 mt-1",
+                              isDarkMode ? "bg-white/[0.03] border-white/10" : "bg-slate-50 border-slate-200"
+                            )}>
+                              <Input
+                                value={newJobForm.company_name}
+                                onChange={e => setNewJobForm(f => ({ ...f, company_name: e.target.value }))}
+                                placeholder="Company (e.g. Google)"
+                                className={cn("h-10 text-sm font-bold rounded-lg", isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}
+                              />
+                              <Input
+                                value={newJobForm.role}
+                                onChange={e => setNewJobForm(f => ({ ...f, role: e.target.value }))}
+                                placeholder="Role (e.g. Software Engineer)"
+                                className={cn("h-10 text-sm font-bold rounded-lg", isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}
+                              />
+                              <Input
+                                value={newJobForm.description}
+                                onChange={e => setNewJobForm(f => ({ ...f, description: e.target.value }))}
+                                placeholder="Description (optional)"
+                                className={cn("h-10 text-sm font-bold rounded-lg", isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}
+                              />
+                              <button
+                                onClick={handleCreateJob}
+                                disabled={creatingJob || !newJobForm.company_name.trim() || !newJobForm.role.trim()}
+                                className={cn(
+                                  "w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2",
+                                  themeClasses.bg, "text-white"
+                                )}
+                              >
+                                {creatingJob ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-3.5 h-3.5" /> Add Job</>}
+                              </button>
+                              {jobCreateError && (
+                                <p className="text-red-400 text-[11px] font-bold text-center">{jobCreateError}</p>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </>
                 )}
 
                 <div className="flex flex-col gap-3">
                   <Button
                     onClick={startMeeting}
-                    disabled={(isInterrupted ? false : !userName.trim()) || status === "connecting"}
+                    disabled={(isInterrupted ? false : !selectedJob) || status === "connecting"}
+
                     className={cn(
                       "w-full h-16 text-white font-black text-lg rounded-2xl shadow-2xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 group",
                       isInterrupted ? "bg-red-600 hover:bg-red-500 shadow-red-500/20" : themeClasses.bg,
@@ -499,9 +937,15 @@ export default function OnboardingConversation() {
                     </div>
                     <div className="flex justify-between items-center pt-1">
                       <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Identity Extraction</span>
-                      <div className={cn("flex items-center gap-1.5", themeClasses.textLight)}>
+                      <div
+                        className={cn("flex items-center gap-1.5 cursor-pointer", themeClasses.textLight)}
+                        onClick={() => { if (status === "connected") endMeeting() }}
+                        title={timeLeft === 0 ? "Force Stop Transaction" : "End Session"}
+                      >
                         <Loader2 className={cn("w-2 h-2 animate-spin", timeLeft === 0 && "hidden")} />
-                        <span className="text-[10px] font-black tabular-nums">{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
+                        <span className={cn("text-[10px] font-black tabular-nums translate-y-[0.5px]", timeLeft === 0 && "text-red-500 animate-pulse")}>
+                          {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -558,7 +1002,11 @@ export default function OnboardingConversation() {
                   </Button>
 
                   <button
-                    onClick={endMeeting}
+                    onClick={() => {
+                      setIsGracefulEnd(true)
+                      gracefulEndRef.current = true
+                      endMeeting(true)
+                    }}
                     className="w-full py-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-red-400 transition-colors"
                   >
                     TERMINATE UPLINK
@@ -569,16 +1017,28 @@ export default function OnboardingConversation() {
               {/* HUD Chat Panels Right */}
               <div className="flex-1 flex flex-col md:h-full">
                 <ScrollArea className="flex-1 md:h-full w-full" ref={scrollAreaRef}>
-                  <div className="p-6 md:p-10 pt-10 md:pt-20 space-y-8 max-w-3xl mx-auto pb-40">
-                    {transcripts.length === 0 && (
+                  <div className="p-6 md:p-10 pt-10 md:pt-20 space-y-8 max-w-3xl mx-auto pb-24 md:pb-40">
+                    {isSyncing && transcripts.length === 0 && (
+                      <div className="flex flex-col items-center space-y-6 py-20 animate-pulse">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full" />
+                          <Cpu className="w-12 h-12 text-purple-400 animate-spin relative z-10" />
+                        </div>
+                        <div className="text-center space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-400">Neural Sync in Progress</p>
+                          <p className="text-slate-500 text-[8px] uppercase font-bold tracking-widest">Compiling voice identity extraction results...</p>
+                        </div>
+                      </div>
+                    )}
+                    {transcripts.length === 0 && !isSyncing && (
                       <div className="flex flex-col items-center space-y-4 opacity-10 py-12">
                         <Network className="w-12 h-12" />
                         <span className="text-[10px] font-black uppercase tracking-widest">Awaiting Neural Inputs...</span>
                       </div>
                     )}
-                    {transcripts.map((t, i) => (
+                    {transcripts.map((t, idx) => (
                       <motion.div
-                        key={i}
+                        key={idx}
                         initial={{ opacity: 0, x: t.speaker === "user" ? 20 : -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         className={`flex gap-6 ${t.speaker === "user" ? "flex-row-reverse" : "flex-row"}`}
@@ -598,15 +1058,77 @@ export default function OnboardingConversation() {
                             : cn("border-indigo-500/20 rounded-tl-none shadow-lg shadow-indigo-500/5", isDarkMode ? "bg-indigo-500/10 text-slate-100" : "bg-indigo-50 text-indigo-900 border-indigo-200")
                         )}>
                           {/* HUD Decoration Corner */}
-                          <div className="absolute top-0 right-0 p-2 opacity-20">
-                            <span className={cn("text-[8px] font-black uppercase tracking-widest", isDarkMode ? "text-slate-500" : "text-slate-400")}>
+                          <div className="absolute top-0 right-0 p-3 flex items-center gap-3">
+                            <span className={cn("text-[8px] font-black uppercase tracking-widest opacity-40", isDarkMode ? "text-slate-500" : "text-slate-400")}>
                               {t.speaker === 'user' ? 'RX_DATA' : 'TX_DATA'}
                             </span>
+                            {t.speaker === 'user' && t.message_id && !editingMessageId && (
+                              <button
+                                onClick={() => {
+                                  // Always allow editing UI to open immediately
+                                  handleEditMessage(t.message_id!, t.text, idx)
+                                  // Trigger background sync if it's a local ID for future-proofing
+                                  if (t.message_id?.startsWith('local-') && currentBotId) {
+                                    syncTranscripts(currentBotId)
+                                  }
+                                }}
+                                className={cn(
+                                  "group/edit p-1.5 rounded-lg border transition-all",
+                                  t.message_id.startsWith('local-')
+                                    ? "bg-purple-500/10 border-purple-500/20 text-purple-400 hover:bg-purple-500/20"
+                                    : (isDarkMode ? "bg-white/5 border-white/10 hover:bg-purple-500/20 hover:border-purple-500/30 text-purple-400" : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-500")
+                                )}
+                                title={t.message_id.startsWith('local-') ? "Correcting (Neural Sync Active)" : "Correct Transcript"}
+                              >
+                                {t.message_id.startsWith('local-') && isSyncing ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : <Edit2 className="w-3.5 h-3.5" />}
+                              </button>
+                            )}
                           </div>
 
-                          <p className="text-sm md:text-base font-medium leading-relaxed">
-                            {t.text}
-                          </p>
+                          {editingMessageId === t.message_id || (editingMessageIndex === idx && t.message_id?.startsWith('local-')) ? (
+                            <div className="space-y-3">
+                              <textarea
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                className={cn(
+                                  "w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm md:text-base font-medium outline-none focus:ring-1",
+                                  theme === 'purple' ? "focus:ring-purple-500" : "focus:ring-blue-500"
+                                )}
+                                rows={3}
+                                autoFocus
+                              />
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingMessageId(null)}
+                                  className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                                >
+                                  <RotateCcw className="w-3 h-3 mr-2" />
+                                  Cancel
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  disabled={isUpdatingMessage}
+                                  onClick={() => saveEdit(t.message_id!)}
+                                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest text-white shadow-lg", themeClasses.bg)}
+                                >
+                                  {isUpdatingMessage ? (
+                                    <Loader2 className="w-3 h-3 animate-spin mr-2" />
+                                  ) : (
+                                    <Save className="w-3 h-3 mr-2" />
+                                  )}
+                                  {isUpdatingMessage && editingMessageId?.startsWith('local-') ? "Resolving Neural ID..." : "Save Correction"}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm md:text-base font-medium leading-relaxed">
+                              {t.text}
+                            </p>
+                          )}
                         </div>
                       </motion.div>
                     ))}
@@ -627,31 +1149,81 @@ export default function OnboardingConversation() {
                 </ScrollArea>
 
                 {/* Bottom Floating Header for Mobile / Tablet */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 py-2 px-6 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl opacity-40">
-                  <span className="text-[8px] font-black uppercase tracking-[0.4em]">Live_Stream.v7</span>
-                </div>
+                {!(status === "disconnected" && transcripts.length > 0) && (
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 py-2 px-6 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl opacity-40">
+                    <span className="text-[8px] font-black uppercase tracking-[0.4em]">Live_Stream.v7</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
 
-      {/* Finishing Action - Only shows when 1-minute briefing is 100% complete */}
+      {/* Finishing Action - Shows review guidance before finalizing */}
       <AnimatePresence>
-        {status === "disconnected" && transcripts.length > 3 && (
+        {status === "disconnected" && transcripts.length > 0 && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="fixed bottom-10 right-10 z-50"
+            className="fixed bottom-0 left-0 right-0 p-3 md:p-10 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-50 flex flex-col lg:flex-row items-center justify-between gap-4 md:gap-8 border-t border-white/5 backdrop-blur-sm"
           >
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="h-20 px-12 bg-green-600 hover:bg-green-500 text-white font-black rounded-full shadow-[0_0_40px_rgba(34,197,94,0.4)] flex items-center gap-4 border border-green-400 transition-all active:scale-95 group"
-            >
-              <Sparkles className="w-6 h-6 animate-pulse" />
-              FINALIZE ONBOARDING
-              <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
-            </button>
+            <div className="flex flex-col gap-1 md:gap-2 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-1.5 md:gap-3 text-emerald-500">
+                <ShieldCheck className="w-3 h-3 md:w-5 md:h-5" />
+                <span className="text-[7px] md:text-xs font-black uppercase tracking-[0.3em]">Review Mode Active</span>
+                {selectedJob && (
+                  <div className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[6px] md:text-[9px] font-black uppercase tracking-widest">
+                    {selectedJob.role} @ {selectedJob.company_name}
+                  </div>
+                )}
+                {currentBotId && (
+                  <button
+                    onClick={() => syncTranscripts(currentBotId)}
+                    disabled={isSyncing}
+                    className="ml-auto md:ml-4 px-1.5 py-0.5 text-[6px] md:text-[8px] font-black bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-all uppercase tracking-widest flex items-center gap-1"
+                  >
+                    {isSyncing ? <Loader2 className="w-2 h-2 animate-spin" /> : <RotateCcw className="w-2 h-2" />}
+                    {isSyncing ? "Syncing..." : "Force Resync"}
+                  </button>
+                )}
+              </div>
+              <h2 className="text-xs md:text-2xl font-black text-white uppercase tracking-tight">
+                {isSyncing ? "Neural Sync..." : transcripts.length > 0 ? "Review & Finalize" : "Awaiting Data..."}
+              </h2>
+              <p className="text-[8px] md:text-sm text-slate-400 font-medium leading-relaxed">
+                {isSyncing 
+                  ? "Extracting voice data. Takes 30-60s."
+                  : transcripts.length > 0 
+                    ? "Extraction successful. Review and correct any terms." 
+                    : "Processing data. Try Force Resync if needed."}
+              </p>
+            </div>
+
+            <div className="flex flex-row md:flex-col lg:flex-row items-center gap-2 md:gap-4 w-full lg:w-auto">
+              <button
+                onClick={() => router.push("/onboarding-jobs")}
+                className="flex-1 lg:flex-none h-10 md:h-14 px-4 md:px-8 text-slate-400 font-black rounded-xl md:rounded-2xl border border-white/10 hover:bg-white/5 transition-all uppercase text-[7px] md:text-[10px] tracking-widest"
+              >
+                Return to Jobs
+              </button>
+              
+              <button
+                onClick={async () => {
+                  await endMeeting(true)
+                  router.push("/dashboard")
+                }}
+                disabled={isSyncing}
+                className={cn(
+                  "flex-[2] lg:flex-none h-12 md:h-20 px-6 md:px-12 text-white font-black rounded-full shadow-lg flex items-center justify-center gap-2 md:gap-4 border transition-all active:scale-95 group shrink-0",
+                  isSyncing ? "bg-slate-700 border-slate-600 opacity-50 cursor-wait" : "bg-green-600 hover:bg-green-500 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.3)]"
+                )}
+              >
+                {isSyncing ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin" /> : <Sparkles className="w-4 h-4 md:w-6 md:h-6 animate-pulse" />}
+                <span className="text-[9px] md:text-base">{isSyncing ? "FINALIZING..." : "FINALIZE PROFILE"}</span>
+                {!isSyncing && <ArrowRight className="w-3.5 h-3.5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

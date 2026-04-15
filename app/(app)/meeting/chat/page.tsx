@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { Send, Bot, User, Cpu, Sparkles, Loader2, Zap, ArrowLeft, Terminal, Shield, Network, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
-import { apiFetch } from "@/lib/api"
+import { apiFetch, queryMeetingTranscript } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 type Message = {
@@ -74,8 +74,8 @@ function MeetingChatContent() {
           <MessageSquare className="w-8 h-8 md:w-12 md:h-12" />
         </div>
         <div className="space-y-3">
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Meeting Chat</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px] max-w-[280px] mx-auto leading-loose text-balance">
+          <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Meeting Chat</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[9px] md:text-[10px] max-w-[280px] mx-auto leading-loose text-balance px-4">
             Unlock Meeting Insights. Your chat interactions and summary arise here.
           </p>
         </div>
@@ -98,10 +98,7 @@ function MeetingChatContent() {
     setLoading(true)
 
     try {
-      const data = await apiFetch("/meeting-query", {
-        method: "POST",
-        body: JSON.stringify({ botId, query: userMsg.content }),
-      })
+      const data = await queryMeetingTranscript(botId, userMsg.content)
       setMessages((prev) => [...prev, { role: "ai", content: data.answer || "I've analyzed the transcript, but I couldn't find a specific answer for that. Could you try rephrasing?" }])
     } catch {
       setMessages((prev) => [
@@ -139,7 +136,7 @@ function MeetingChatContent() {
         </div>
 
         {/* Cyber Grids */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
+        <div className="absolute inset-0 bg-noise opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] dark:bg-[linear-gradient(rgba(59,130,246,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.05)_1px,transparent_1px)]" />
       </div>
 
@@ -152,7 +149,7 @@ function MeetingChatContent() {
             transition={{ duration: 0.8, ease: "easeInOut" }}
             className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 backdrop-blur-xl"
           >
-            <div className="w-full max-w-lg px-6 md:px-12 space-y-12 relative">
+            <div className="w-full max-w-lg px-4 md:px-12 space-y-8 md:space-y-12 relative">
               {/* Scanning Line Animation */}
               <motion.div
                 animate={{ top: ["0%", "100%", "0%"] }}
@@ -165,21 +162,21 @@ function MeetingChatContent() {
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                    className="w-40 h-40 rounded-full border border-dashed border-blue-500/30 flex items-center justify-center"
+                    className="w-24 h-24 md:w-40 md:h-40 rounded-full border border-dashed border-blue-500/30 flex items-center justify-center"
                   >
                     <motion.div
                       animate={{ rotate: -360 }}
                       transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                      className="w-32 h-32 rounded-full border border-blue-500/20 border-t-blue-500/60"
+                      className="w-20 h-20 md:w-32 md:h-32 rounded-full border border-blue-500/20 border-t-blue-500/60"
                     />
                   </motion.div>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Cpu className="w-14 h-14 text-blue-500 animate-pulse shadow-2xl" />
+                    <Cpu className="w-8 h-8 md:w-14 md:h-14 text-blue-500 animate-pulse shadow-2xl" />
                   </div>
 
                   {/* HUD Data Bits */}
-                  <div className="absolute -top-4 -left-4 text-[8px] font-black text-blue-500/40 font-mono">X-882: NODE_READY</div>
-                  <div className="absolute -bottom-4 -right-4 text-[8px] font-black text-blue-500/40 font-mono">SYNC: {Math.round(initProgress)}MS</div>
+                  <div className="absolute -top-3 -left-3 md:-top-4 md:-left-4 text-[7px] md:text-[8px] font-black text-blue-500/40 font-mono">NODE_READY</div>
+                  <div className="absolute -bottom-3 -right-3 md:-bottom-4 md:-right-4 text-[7px] md:text-[8px] font-black text-blue-500/40 font-mono">{Math.round(initProgress)}%</div>
                 </div>
 
                 <div className="space-y-4 text-center">
@@ -187,14 +184,14 @@ function MeetingChatContent() {
                     key={initStatus}
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-[0.4em]"
+                    className="text-xs md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-normal md:tracking-[0.4em]"
                   >
                     {initStatus}
                   </motion.h2>
                   <div className="flex items-center justify-center gap-2">
-                    <div className="h-0.5 w-12 bg-gradient-to-r from-transparent to-blue-500/50" />
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.3em]">SECURE_NEURAL_SYNTHESIS</p>
-                    <div className="h-0.5 w-12 bg-gradient-to-l from-transparent to-blue-500/50" />
+                    <div className="h-0.5 w-6 md:w-12 bg-gradient-to-r from-transparent to-blue-500/50" />
+                    <p className="text-[7px] md:text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-tight md:tracking-[0.3em]">SECURE_NEURAL_SYNTHESIS</p>
+                    <div className="h-0.5 w-6 md:w-12 bg-gradient-to-l from-transparent to-blue-500/50" />
                   </div>
                 </div>
 
@@ -209,9 +206,9 @@ function MeetingChatContent() {
                   <div className="flex justify-between items-center px-1">
                     <div className="flex items-center gap-2">
                       <div className="w-1 h-1 rounded-full bg-blue-500 animate-ping" />
-                      <span className="text-[9px] font-black text-blue-500/60 font-mono tracking-widest">ENCRYPTING_TUNNEL</span>
+                      <span className="text-[8px] md:text-[9px] font-black text-blue-500/60 font-mono tracking-normal md:tracking-widest uppercase">TUNNEL_READY</span>
                     </div>
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 font-mono">{Math.round(initProgress)}%</span>
+                    <span className="text-[9px] md:text-[10px] font-black text-slate-400 dark:text-slate-500 font-mono">{Math.round(initProgress)}%</span>
                   </div>
                 </div>
               </div>
@@ -220,8 +217,8 @@ function MeetingChatContent() {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 overflow-y-auto px-6 md:px-12 pt-12 pb-8 relative z-10 custom-scrollbar">
-        <div className="max-w-4xl mx-auto space-y-12">
+      <main className="flex-1 overflow-y-auto px-4 md:px-12 pt-8 md:pt-12 pb-8 relative z-10 custom-scrollbar">
+        <div className="max-w-4xl mx-auto space-y-8 md:space-y-12">
           {messages.length === 0 && !isInitializing && (
             <motion.div
               initial={{ opacity: 0, y: 40 }}
@@ -242,13 +239,13 @@ function MeetingChatContent() {
                 </div>
               </div>
               <div className="space-y-4">
-                <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase tracking-[0.1em]">Intelligence Active</h2>
-                <div className="flex flex-wrap justify-center gap-3">
-                  <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Context Window Ready</Badge>
-                  <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">RAG Engine Online</Badge>
+                <h2 className="text-xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase tracking-normal md:tracking-[0.1em]">Intelligence Active</h2>
+                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                  <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 px-3 py-0.5 md:px-4 md:py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest">Context Ready</Badge>
+                  <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 px-3 py-0.5 md:px-4 md:py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest">RAG Online</Badge>
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest max-w-lg leading-relaxed">
-                  The semantic index is compiled. Type a query to unlock meeting insights.
+                <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest max-w-lg leading-relaxed px-6">
+                  Semantic index compiled. Unlock insights now.
                 </p>
               </div>
             </motion.div>
@@ -261,7 +258,7 @@ function MeetingChatContent() {
                 initial={{ opacity: 0, y: 20, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 className={cn(
-                  "flex items-start gap-6 group/msg",
+                  "flex items-start gap-3 md:gap-6 group/msg",
                   m.role === "user" ? "flex-row-reverse" : ""
                 )}
               >
@@ -280,7 +277,7 @@ function MeetingChatContent() {
 
                 <div
                   className={cn(
-                    "max-w-[70%] rounded-[2rem] px-8 py-6 text-base leading-loose shadow-2xl transition-all duration-500 relative",
+                    "max-w-[85%] md:max-w-[70%] rounded-2xl md:rounded-[2rem] px-5 py-4 md:px-8 md:py-6 text-sm md:text-base leading-relaxed md:leading-loose shadow-2xl transition-all duration-500 relative",
                     m.role === "user"
                       ? "bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-tr-none hover:border-indigo-500/30"
                       : "bg-gradient-to-br from-slate-100 to-white dark:from-blue-500/[0.05] dark:to-blue-600/[0.02] border border-slate-200 dark:border-blue-500/20 text-slate-700 dark:text-slate-100 rounded-tl-none backdrop-blur-3xl hover:border-blue-400/50 shadow-blue-900/10"
@@ -324,7 +321,7 @@ function MeetingChatContent() {
       </main>
 
       {/* Futuristic floating glass console */}
-      <footer className="relative z-20 pb-12 px-6 md:px-12">
+      <footer className="relative z-20 pb-6 md:pb-12 px-4 md:px-12">
         <div className="max-w-4xl mx-auto relative">
           {/* Console HUD Label */}
           <div className="absolute -top-10 left-10 flex items-center gap-3 opacity-40 group/label">
@@ -336,34 +333,34 @@ function MeetingChatContent() {
             {/* Glow Background */}
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-[3rem] blur-2xl opacity-0 group-focus-within/console:opacity-100 transition-opacity duration-700" />
 
-            <div className="relative flex items-end gap-4 p-3 bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 rounded-[2.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_80px_rgba(0,0,0,0.4)] backdrop-blur-3xl ring-1 ring-white/20 transition-all duration-500 focus-within:ring-blue-500/40 focus-within:-translate-y-1">
-              <div className="pl-6 pb-6 pr-2">
-                <div className="p-3 rounded-full bg-slate-50 dark:bg-white/5 text-slate-400 group-hover/console:text-blue-500 transition-colors">
-                  <PlusCircleIcon className="w-6 h-6" />
+            <div className="relative flex items-end gap-2 md:gap-4 p-2 md:p-3 bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 rounded-3xl md:rounded-[2.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_80px_rgba(0,0,0,0.4)] backdrop-blur-3xl ring-1 ring-white/20 transition-all duration-500 focus-within:ring-blue-500/40 focus-within:-translate-y-1">
+              <div className="pl-2 md:pl-6 pb-2 md:pb-6 pr-1 md:pr-2">
+                <div className="p-2 md:p-3 rounded-full bg-slate-50 dark:bg-white/5 text-slate-400 group-hover/console:text-blue-500 transition-colors">
+                  <PlusCircleIcon className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
               </div>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Query the neural network..."
-                className="flex-1 bg-transparent border-none py-6 px-2 text-lg font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-indigo-900/40 outline-none resize-none min-h-[72px] max-h-48 custom-scrollbar"
+                placeholder="Query neural network..."
+                className="flex-1 bg-transparent border-none py-3 md:py-6 px-1 md:px-2 text-sm md:text-lg font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-indigo-900/40 outline-none resize-none min-h-[48px] md:min-h-[72px] max-h-48 custom-scrollbar"
                 rows={1}
               />
-              <div className="pr-4 pb-4">
+              <div className="pr-2 md:pr-4 pb-2 md:pb-4">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button
                     onClick={askQuestion}
                     disabled={loading || !input.trim() || isInitializing}
                     className={cn(
-                      "h-16 w-16 rounded-[1.8rem] transition-all duration-500 shadow-2xl relative overflow-hidden group/btn",
+                      "h-12 w-12 md:h-16 md:w-16 rounded-2xl md:rounded-[1.8rem] transition-all duration-500 shadow-2xl relative overflow-hidden group/btn",
                       input.trim()
                         ? "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/40"
                         : "bg-slate-200 dark:bg-white/5 text-slate-400 grayscale opacity-40 cursor-not-allowed"
                     )}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_1s_infinite]" />
-                    <Send className="h-7 w-7 relative z-10" />
+                    <Send className="h-5 w-5 md:h-7 md:w-7 relative z-10" />
                   </Button>
                 </motion.div>
               </div>

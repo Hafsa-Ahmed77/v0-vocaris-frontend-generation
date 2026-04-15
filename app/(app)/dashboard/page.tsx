@@ -1,6 +1,6 @@
 "use client"
 
-import useSWR from "swr"
+import useSWR, { mutate } from "swr"
 import { UpcomingMeetings } from "@/components/dashboard/upcoming-meetings"
 import { RecentActivities } from "@/components/dashboard/recent-activities"
 import { QuickJoin } from "@/components/dashboard/quick-join"
@@ -8,7 +8,7 @@ import { useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Zap, MonitorPlay, LayoutDashboard, Search, Filter, SlidersHorizontal, Calendar, ArrowRight, CalendarClock, History, Users, MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { getUpcomingMeetings, getMeetingStats, getMeetingHistory, startMeeting, getUserSessions } from "@/lib/api"
+import { getUpcomingMeetings, getMeetingStats, getMeetingHistory, startMeeting, getUserSessions, getUserJobs, getScheduledMeetings, endAllMeetings } from "@/lib/api"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [offset, setOffset] = useState(0)
   const [isStartingAgent, setIsStartingAgent] = useState(false)
+  const [loadingScheduledIds, setLoadingScheduledIds] = useState<string[]>([])
   const [userName, setUserName] = useState("User")
   const limit = 50
 
@@ -67,11 +68,56 @@ export default function DashboardPage() {
     },
     { keepPreviousData: true }
   )
+  
+  const { data: jobsData } = useSWR("user-jobs", async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return null
+    return await getUserJobs()
+  })
 
-  const handleStartAgent = async (url: string, isScrum: boolean) => {
+  const jobs = Array.isArray(jobsData) ? jobsData : (jobsData?.jobs || [])
+
+  const { data: scheduledData, mutate: mutateScheduled } = useSWR("scheduled-meetings", async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return null
+    return await getScheduledMeetings()
+  })
+
+  const scheduledMeetings = scheduledData?.meetings || []
+
+  const handleEndAll = async () => {
+    if (!window.confirm("Are you sure you want to terminate all active sessions? This action cannot be undone.")) return
+    
+    try {
+      await endAllMeetings()
+      toast.success("Successfully sent termination signal to all agents.")
+      // Refresh session data
+      mutate("user-sessions")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to terminate sessions")
+    }
+  }
+
+  const handleDisableScheduled = async (eventId: string) => {
+    if (loadingScheduledIds.includes(eventId)) return
+    try {
+      setLoadingScheduledIds((prev) => [...prev, eventId])
+      const { disableAutoJoin } = await import("@/lib/api")
+      await disableAutoJoin(eventId)
+      toast.success("Auto-join disabled for this meeting")
+      mutate("scheduled-meetings")
+      mutate("calendar-events")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to disable auto-join")
+    } finally {
+      setLoadingScheduledIds((prev) => prev.filter((id) => id !== eventId))
+    }
+  }
+
+  const handleStartAgent = async (url: string, isScrum: boolean, jobId?: string) => {
     try {
       setIsStartingAgent(true)
-      const res = await startMeeting(url, isScrum, isScrum ? "Scrum Meeting" : "New Meeting")
+      const res = await startMeeting(url, isScrum, isScrum ? "Scrum Meeting" : "New Meeting", jobId)
       toast.success("Agent is joining the meeting!")
 
       // We still keep these for quick recovery, but the source of truth will be URL
@@ -139,6 +185,14 @@ export default function DashboardPage() {
               <Zap className="size-3.5 fill-blue-500 dark:fill-cyan-500 text-blue-500 dark:text-cyan-500" />
               {statsLoading ? "Scanning..." : `${stats?.active_in_call || 0} Live Sessions`}
             </div>
+            {activeSessions.length > 0 && (
+                <button 
+                  onClick={handleEndAll}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-black text-[10px] uppercase tracking-wider rounded-lg border border-rose-500/20 transition-all active:scale-95"
+                >
+                  Terminate All
+                </button>
+            )}
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[#1E293B] dark:text-white font-bold text-xs backdrop-blur-sm shadow-sm dark:shadow-none">
               <MonitorPlay className="size-3.5 text-slate-400 dark:text-azure-400" />
               {statsLoading ? "—" : `${stats?.total_sessions || 0} Records`}
@@ -223,6 +277,8 @@ export default function DashboardPage() {
         </div>
       )}
 
+
+
       {/* Stats Cards: Sapphire Duo Style */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
         <div className="bg-white dark:bg-gradient-to-b dark:from-[#1E293B] dark:to-[#161E31] rounded-[2rem] p-6 border border-[#E0E7FF] dark:border-[#2D3A54] hover:border-blue-500/30 dark:hover:border-cyan-500/30 transition-all group shadow-xl shadow-blue-500/[0.03] dark:shadow-none hover:shadow-blue-500/[0.08] dark:hover:shadow-cyan-900/10">
@@ -272,7 +328,7 @@ export default function DashboardPage() {
 
         {/* Left Column (3/5): Action area */}
         <div className="lg:col-span-3 space-y-6">
-          <QuickJoin onStartAgent={handleStartAgent} isLoading={isStartingAgent} />
+          <QuickJoin onStartAgent={handleStartAgent} isLoading={isStartingAgent} jobs={jobs} />
 
           <div className="space-y-4">
             <div className="flex items-center justify-between px-2">
@@ -291,15 +347,18 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <UpcomingMeetings
-                  items={filteredEvents.map((e: any) => ({
-                    id: e.event_id,
-                    title: e.title,
-                    with: e.organizer,
-                    start_time: e.start_time,
-                    end_time: e.end_time,
-                    meeting_url: e.meeting_url,
-                    auto_join_enabled: e.auto_join_enabled,
-                  }))}
+                  items={filteredEvents.map((e: any) => {
+                    const isScheduled = scheduledMeetings.some((sm: any) => sm.event_id === e.event_id || sm.id === e.event_id)
+                    return {
+                      id: e.event_id,
+                      title: e.title,
+                      with: e.organizer,
+                      start_time: e.start_time,
+                      end_time: e.end_time,
+                      meeting_url: e.meeting_url,
+                      auto_join_enabled: isScheduled || e.auto_join_enabled,
+                    }
+                  })}
                 />
               )}
             </div>
