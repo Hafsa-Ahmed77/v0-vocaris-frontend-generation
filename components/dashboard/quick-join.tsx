@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Zap, Link as LinkIcon, Play, Briefcase, ChevronDown } from "lucide-react"
+import { motion } from "framer-motion"
+import { Zap, Link as LinkIcon, Play, Briefcase, ChevronDown, ShieldAlert } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -17,26 +19,71 @@ import { useEffect } from "react"
 interface QuickJoinProps {
     onStartAgent: (url: string, isScrum: boolean, jobId?: string) => Promise<void>
     isLoading?: boolean
+    isJobsLoading?: boolean
     jobs?: any[]
 }
 
-export function QuickJoin({ onStartAgent, isLoading, jobs = [] }: QuickJoinProps) {
+export function QuickJoin({ onStartAgent, isLoading, isJobsLoading, jobs = [] }: QuickJoinProps) {
     const [url, setUrl] = useState("")
+    const [localError, setLocalError] = useState("")
+    const [shake, setShake] = useState(false)
     const [isScrum, setIsScrum] = useState(false)
     const [selectedJobId, setSelectedJobId] = useState<string>("")
 
-    // Auto-select if only one job exists
+    const onboardedJobs = jobs?.filter(job => job.last_session_id) || []
+    const hasJobsTotal = jobs?.length > 0
+    const hasOnboardedJobs = onboardedJobs.length > 0
+
+    // Auto-select if jobs exist
     useEffect(() => {
-        if (jobs.length === 1 && !selectedJobId) {
-            setSelectedJobId(jobs[0].job_id)
+        if (hasOnboardedJobs && !selectedJobId) {
+            setSelectedJobId(onboardedJobs[0].job_id)
         }
-    }, [jobs, selectedJobId])
+    }, [onboardedJobs, selectedJobId, hasOnboardedJobs])
+
+    const validateUrl = (testUrl: string) => {
+        // Standard meet.google.com/xxx-xxxx-xxx or meet.google.com/xxxxxxxxx
+        const meetRegex = /^https:\/\/meet\.google\.com\/[a-z0-9-]+$/i
+        return meetRegex.test(testUrl.trim())
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!url.trim()) return
-        await onStartAgent(url, isScrum, (selectedJobId && selectedJobId !== "none") ? selectedJobId : undefined)
+        setLocalError("")
+        
+        const selectedHasOnboarding = onboardedJobs.some(j => j.job_id === selectedJobId)
+        
+        if (!url.trim()) {
+            setLocalError("Please enter a meeting link.")
+            triggerShake()
+            return
+        }
+
+        if (!validateUrl(url)) {
+            setLocalError("Invalid Format: Link must be a valid Google Meet URL.")
+            triggerShake()
+            return
+        }
+
+        if (!selectedHasOnboarding) {
+            setLocalError("Please select a sync-ready Neural Profile.")
+            triggerShake()
+            return
+        }
+
+        try {
+            await onStartAgent(url.trim(), isScrum, selectedJobId || onboardedJobs[0]?.job_id)
+        } catch (err: any) {
+            setLocalError(err.message || "Failed to start agent. Please try again.")
+            triggerShake()
+        }
     }
+
+    const triggerShake = () => {
+        setShake(true)
+        setTimeout(() => setShake(false), 500)
+    }
+
 
     return (
         <div className="relative group">
@@ -83,44 +130,71 @@ export function QuickJoin({ onStartAgent, isLoading, jobs = [] }: QuickJoinProps
                     </div>
                 </div>
 
-                {jobs.length > 0 && (
+                {isJobsLoading ? (
+                    <div className="mb-4 h-[76px] rounded-xl bg-slate-100/50 dark:bg-white/5 animate-pulse" />
+                ) : hasJobsTotal ? (
                     <div className="mb-4 relative animate-in fade-in slide-in-from-top-2 duration-500">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 block px-1">
-                            Job Context (Optional)
+                            Neural Context Required
                         </label>
 
                         <Select value={selectedJobId} onValueChange={setSelectedJobId}>
                             <SelectTrigger className="w-full h-12 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-[#1E293B] dark:text-white px-11 relative">
                                 <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-blue-500 dark:text-cyan-500 pointer-events-none" />
-                                <SelectValue placeholder="Generic / No Context" />
+                                <SelectValue placeholder="Select an onboarded job" />
                             </SelectTrigger>
                             <SelectContent className="bg-white dark:bg-[#0A0F1E] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-xl">
-                                <SelectItem value="none">Generic / No Context</SelectItem>
                                 {jobs.map((job) => (
-                                    <SelectItem key={job.job_id} value={job.job_id}>
-                                        {job.company_name} — {job.role}
+                                    <SelectItem key={job.job_id} value={job.job_id} disabled={!job.last_session_id} className={cn(!job.last_session_id && "opacity-50 blur-[0.3px]")}>
+                                        <div className="flex items-center gap-2">
+                                            <span>{job.company_name} — {job.role}</span>
+                                            {!job.last_session_id && <span className="text-[8px] uppercase font-bold text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-sm tracking-widest opacity-80">Pending Sync</span>}
+                                        </div>
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
+                ) : (
+                    <div className="mb-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 flex items-start gap-3">
+                        <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <div className="flex flex-col gap-1">
+                            <span className="text-sm font-bold">Action Restricted</span>
+                            <span className="text-xs opacity-90 leading-relaxed">
+                                You must create at least one Neural Sync session for a job before deploying an agent to real meetings.
+                            </span>
+                            <Link href="/onboarding-jobs" className="text-xs font-black uppercase tracking-widest mt-1 hover:underline">
+                                Go to Job Manager &rarr;
+                            </Link>
+                        </div>
+                    </div>
                 )}
-
-                <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 relative">
+                <form onSubmit={handleSubmit} className={cn("flex flex-col sm:flex-row gap-3 relative transition-transform duration-300", shake && "animate-shake")}>
                     <div className="flex-1 relative">
-                        <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400 dark:text-slate-500" />
+                        <LinkIcon className={cn(
+                            "absolute left-4 top-1/2 -translate-y-1/2 size-4 transition-colors",
+                            localError ? "text-red-500" : "text-slate-400 dark:text-slate-500"
+                        )} />
                         <input
                             type="text"
                             value={url}
-                            onChange={(e) => setUrl(e.target.value)}
+                            onChange={(e) => {
+                                setUrl(e.target.value)
+                                if (localError) setLocalError("")
+                            }}
                             placeholder="Paste Google Meet URL..."
-                            className="w-full pl-11 pr-4 h-14 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-[#1E293B] dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-cyan-500/20 focus:border-blue-500/50 dark:focus:border-cyan-500/50 transition-all shadow-inner dark:shadow-none"
+                            className={cn(
+                                "w-full pl-11 pr-4 h-14 bg-slate-50 dark:bg-white/5 border rounded-2xl text-sm font-bold text-[#1E293B] dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none transition-all shadow-inner dark:shadow-none",
+                                localError 
+                                    ? "border-red-500/50 ring-2 ring-red-500/10 focus:border-red-500 focus:ring-red-500/20" 
+                                    : "border-slate-200 dark:border-white/10 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-cyan-500/20 focus:border-blue-500/50 dark:focus:border-cyan-500/50"
+                            )}
                         />
                     </div>
                     <button
                         type="submit"
-                        disabled={isLoading || !url}
-                        className="h-14 px-8 bg-blue-600 dark:bg-cyan-500 text-white dark:text-[#0A0F1E] rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 dark:shadow-cyan-500/20 hover:bg-blue-700 dark:hover:bg-cyan-400 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3 border border-blue-500/30 dark:border-cyan-400/30"
+                        disabled={isLoading || !url || !hasOnboardedJobs}
+                        className="h-14 px-8 bg-blue-600 dark:bg-cyan-500 text-white dark:text-[#0A0F1E] rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 dark:shadow-cyan-500/20 hover:bg-blue-700 dark:hover:bg-cyan-400 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed flex items-center justify-center gap-3 border border-blue-500/30 dark:border-cyan-400/30"
                     >
                         {isLoading ? (
                             <span className="w-5 h-5 border-2 border-white/30 dark:border-[#0A0F1E]/30 border-t-white dark:border-t-[#0A0F1E] rounded-full animate-spin" />
@@ -132,6 +206,17 @@ export function QuickJoin({ onStartAgent, isLoading, jobs = [] }: QuickJoinProps
                         )}
                     </button>
                 </form>
+
+                {localError && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-3 bg-red-500/10 border border-red-500/20 p-3 rounded-xl flex items-center gap-3 text-red-600 dark:text-red-400"
+                    >
+                        <ShieldAlert className="size-4 shrink-0" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{localError}</span>
+                    </motion.div>
+                )}
             </div>
         </div>
     )

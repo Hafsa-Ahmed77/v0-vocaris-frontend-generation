@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Mic,
@@ -33,7 +34,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
-  getUserJobs, createJob, startVoiceMeetingWithJob,
+  getUserJobs, createJob, startVoiceMeetingWithJob, getJobDetails,
   getVoiceMeetingTranscripts,
   getVoiceMeetingStatus,
   updateVoiceMessage,
@@ -41,7 +42,7 @@ import {
 } from "@/lib/api"
 
 type Transcript = { speaker: "user" | "agent"; text: string; message_id?: string }
-type Job = { job_id: string; company_name: string; role: string; description?: string }
+type Job = { job_id: string; company_name: string; role: string; description?: string; last_session_id?: string }
 
 export default function OnboardingConversation() {
   const router = useRouter()
@@ -58,8 +59,15 @@ export default function OnboardingConversation() {
   const [isGracefulEnd, setIsGracefulEnd] = useState(false)
   const [hasStartedTalking, setHasStartedTalking] = useState(false)
 
-  const [isDarkMode, setIsDarkMode] = useState(true)
-  const [theme, setTheme] = useState<"purple" | "blue">("purple")
+  const { theme: siteTheme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  
+  const isDarkMode = mounted ? (resolvedTheme === "dark") : true
+  const [theme, setThemeMode] = useState<"purple" | "blue">("blue")
 
   // Job context — selected inline in the entry screen
   const [jobs, setJobs] = useState<Job[]>([])
@@ -108,6 +116,19 @@ export default function OnboardingConversation() {
                 job_id: j.job_id || j.id || j.uuid
               }))
               setJobs(normalizedJobs)
+              
+              // Hydrate job details in background to detect already-onboarded jobs
+              Promise.all(normalizedJobs.map(async (job: any) => {
+                try {
+                  const details = await getJobDetails(job.job_id)
+                  const sessions = details?.conversation_sessions || details?.voice_sessions || details?.onboarding_sessions || details?.sessions || []
+                  if (sessions && sessions.length > 0) {
+                    const sess = sessions[0]
+                    return { ...job, last_session_id: sess.session_id || sess.bot_id || sess.id || sess.uuid }
+                  }
+                } catch { /* ignore */ }
+                return job
+              })).then(hydrated => setJobs(hydrated))
 
               // Auto-select job if passed from Job Manager
               const passedJobId = searchParams.get("job_id")
@@ -132,7 +153,7 @@ export default function OnboardingConversation() {
                         setCurrentBotId(sid)
                         syncTranscripts(sid)
                       }
-                    }).catch(err => console.warn("[Onboarding] Job detail check failed:", err))
+                    }).catch((err: any) => console.warn("[Onboarding] Job detail check failed:", err))
                   }
                 }
               }
@@ -211,16 +232,7 @@ export default function OnboardingConversation() {
     setCreatingJob(false)
   }
 
-  // Initialize theme from URL or localStorage
-  useEffect(() => {
-    const themeParam = searchParams.get("theme") as "purple" | "blue"
-    const savedTheme = localStorage.getItem("vocaris_theme") as "purple" | "blue"
-    if (themeParam && (themeParam === "purple" || themeParam === "blue")) {
-      setTheme(themeParam)
-    } else if (savedTheme && (savedTheme === "purple" || savedTheme === "blue")) {
-      setTheme(savedTheme)
-    }
-  }, [searchParams])
+  // Legacy theme loader was removed to enforce the global Blue standard.
 
   // Color dynamic classes helper
   const accentColor = theme === "purple" ? "purple" : "blue"
@@ -672,7 +684,7 @@ export default function OnboardingConversation() {
         <div className="flex items-center gap-6">
           {/* Premium Theme Switcher */}
           <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
+            onClick={() => setTheme(isDarkMode ? "light" : "dark")}
             className={cn(
               "relative w-14 h-7 rounded-full p-1 transition-all duration-500 border overflow-hidden",
               isDarkMode ? "bg-slate-800 border-white/10" : "bg-white border-slate-200 shadow-inner"
@@ -790,22 +802,28 @@ export default function OnboardingConversation() {
                             <button
                               key={job.job_id}
                               onClick={() => setSelectedJob(selectedJob?.job_id === job.job_id ? null : job)}
+                              disabled={!!job.last_session_id}
                               className={cn(
                                 "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wide transition-all",
+                                !!job.last_session_id && "opacity-50 cursor-not-allowed",
                                 selectedJob?.job_id === job.job_id
                                   ? cn(themeClasses.bg, "text-white border-transparent shadow-lg")
-                                  : (isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:border-white/20" : "bg-slate-100 border-slate-200 text-slate-600 hover:border-slate-300")
+                                  : (isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:border-white/20" : "bg-slate-100 border-slate-200 text-slate-600 hover:border-slate-300"),
+                                !!job.last_session_id && !isDarkMode && "bg-slate-200 border-slate-300 text-slate-400"
                               )}
                             >
-                              {selectedJob?.job_id === job.job_id && <Check className="w-3 h-3" />}
-                              <Building2 className="w-3 h-3" />
+                              {selectedJob?.job_id === job.job_id ? <Check className="w-3 h-3" /> : (!!job.last_session_id ? <ShieldCheck className="w-3 h-3 text-emerald-500" /> : <Building2 className="w-3 h-3" />)}
                               {job.role} @ {job.company_name}
                             </button>
                           ))}
 
                           {/* Add new job inline */}
                           <button
-                            onClick={() => setShowNewJobForm(!showNewJobForm)}
+                            onClick={() => {
+                              const willShow = !showNewJobForm
+                              setShowNewJobForm(willShow)
+                              if (willShow) setSelectedJob(null)
+                            }}
                             className={cn(
                               "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wide transition-all",
                               isDarkMode
@@ -842,12 +860,6 @@ export default function OnboardingConversation() {
                                 value={newJobForm.role}
                                 onChange={e => setNewJobForm(f => ({ ...f, role: e.target.value }))}
                                 placeholder="Role (e.g. Software Engineer)"
-                                className={cn("h-10 text-sm font-bold rounded-lg", isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}
-                              />
-                              <Input
-                                value={newJobForm.description}
-                                onChange={e => setNewJobForm(f => ({ ...f, description: e.target.value }))}
-                                placeholder="Description (optional)"
                                 className={cn("h-10 text-sm font-bold rounded-lg", isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}
                               />
                               <button

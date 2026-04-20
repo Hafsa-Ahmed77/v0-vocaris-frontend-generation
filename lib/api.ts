@@ -3,6 +3,17 @@ import { clearAuthCookie } from "./auth-cookies"
 
 // lib/api.ts
 /**
+ * Helper to get a cookie value by name on the client side.
+ */
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null
+  return null
+}
+
+/**
  * Global API fetch wrapper with automatic auth header injection
  * and global 401 (Unauthorized) handling.
  */
@@ -10,14 +21,20 @@ export async function apiFetch(
   path: string,
   options: RequestInit = {}
 ) {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("token")
-      : null
+  let token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+
+  // 💊 Token Healing: If localStorage is empty but cookie exists, sync it.
+  if (!token && typeof window !== "undefined") {
+    token = getCookie("vocaris_token")
+    if (token) {
+      console.log("[Auth] Healing session from cookie...")
+      localStorage.setItem("token", token)
+    }
+  }
 
   // Normalize path to prevent double/triple slashes
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const fullPath = `/api${normalizedPath}`.replace(/\/+/g, '/');
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
+  const fullPath = `/api${normalizedPath}`.replace(/\/+/g, "/")
 
   const res = await fetch(fullPath, {
     ...options,
@@ -29,9 +46,10 @@ export async function apiFetch(
   })
 
   // Global 401 Handling: If unauthorized, clear local session and redirect to login
-  if (res.status === 401 && typeof window !== 'undefined') {
+  if (res.status === 401 && typeof window !== "undefined") {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
+    clearAuthCookie()
     window.location.href = "/auth"
     throw new Error("Session expired. Please login again.")
   }
@@ -50,7 +68,18 @@ export async function apiFetch(
  */
 export async function verifyToken(): Promise<boolean> {
   if (typeof window === "undefined") return true
-  const token = localStorage.getItem("token")
+  
+  let token = localStorage.getItem("token")
+
+  // 🛡️ Cookie Recovery: If localStorage is lost (Safari/Cache clear), try the cookie.
+  if (!token) {
+    token = getCookie("vocaris_token")
+    if (token) {
+      console.log("[Auth] Token found in cookies. Restoring LocalStorage...")
+      localStorage.setItem("token", token)
+    }
+  }
+
   if (!token) return false
 
   try {
@@ -67,6 +96,45 @@ export async function verifyToken(): Promise<boolean> {
     console.error("Token verification failed:", err)
     // Network failure — assume valid to avoid aggressive logout
     return true
+  }
+}
+
+/**
+ * Unified Onboarding Status Check.
+ * Strict Logic: Returns true ONLY if the user has at least one Job
+ * AND that job has at least one completed Voice Onboarding session.
+ */
+export async function checkOnboardingStatus(): Promise<boolean> {
+  try {
+    const jobsData = await getUserJobs().catch(() => ({ jobs: [] }))
+    const jobs = Array.isArray(jobsData) ? jobsData : (jobsData?.jobs || [])
+
+    if (jobs.length === 0) return false
+
+    // Check if any of these jobs have an associated onboarding session
+    // We do this by checking job details for each job
+    const jobSyncStatuses = await Promise.all(
+      jobs.map(async (job: any) => {
+        try {
+          const details = await getJobDetails(job.job_id || job.id || job.uuid)
+          const sessions =
+            details?.conversation_sessions ||
+            details?.voice_sessions ||
+            details?.onboarding_sessions ||
+            details?.sessions ||
+            details?.voice_meeting_sessions ||
+            []
+          return sessions.length > 0
+        } catch {
+          return false
+        }
+      })
+    )
+
+    return jobSyncStatuses.some((status) => status === true)
+  } catch (err) {
+    console.error("Failed to check onboarding status:", err)
+    return false
   }
 }
 

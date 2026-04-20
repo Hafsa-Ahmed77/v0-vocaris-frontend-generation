@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion"
 import {
     AudioLines,
@@ -18,7 +19,14 @@ import { cn } from "@/lib/utils"
 
 export default function OnboardingSelectionPage() {
     const router = useRouter()
-    const [isDarkMode, setIsDarkMode] = useState(true)
+    const { theme, setTheme, resolvedTheme } = useTheme()
+    const [mounted, setMounted] = useState(false)
+    
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+    
+    const isDarkMode = mounted ? (resolvedTheme === "dark") : true
     const [selectedMode, setSelectedMode] = useState<string | null>(null)
 
     return (
@@ -48,7 +56,7 @@ export default function OnboardingSelectionPage() {
                 <div className="flex items-center gap-6">
                     {/* Premium Theme Switcher */}
                     <button
-                        onClick={() => setIsDarkMode(!isDarkMode)}
+                        onClick={() => setTheme(isDarkMode ? "light" : "dark")}
                         className={cn(
                             "relative w-14 h-7 rounded-full p-1 transition-all duration-500 border overflow-hidden",
                             isDarkMode ? "bg-slate-800 border-white/10" : "bg-white border-slate-200 shadow-inner"
@@ -103,8 +111,8 @@ export default function OnboardingSelectionPage() {
                             isSelected={selectedMode === 'voice'}
                             onClick={() => {
                                 setSelectedMode('voice')
-                                localStorage.setItem("vocaris_theme", "purple")
-                                setTimeout(() => router.push("/onboarding-conversation?theme=purple"), 600)
+                                localStorage.setItem("vocaris_theme", "blue")
+                                setTimeout(() => router.push("/onboarding-conversation?theme=blue"), 600)
                             }}
                             isDark={isDarkMode}
                             type="voice"
@@ -150,14 +158,14 @@ function SelectionCard({ title, desc, icon, tags, onClick, isDark, type, isSelec
     }
 
     const isVoice = type === 'voice'
-    const accentColor = isVoice ? "purple" : "blue"
+    const accentColor = isVoice ? "blue" : "blue"
 
     // Glow calculation
     const glowClass = isSelected
-        ? (isVoice ? "shadow-[0_0_50px_rgba(168,85,247,0.3)] border-purple-500/60" : "shadow-[0_0_50px_rgba(59,130,246,0.3)] border-blue-500/60")
+        ? (isVoice ? "shadow-[0_0_50px_rgba(168,85,247,0.3)] border-blue-500/60" : "shadow-[0_0_50px_rgba(59,130,246,0.3)] border-blue-500/60")
         : (isHovered
-            ? (isVoice ? "shadow-[0_0_40px_rgba(168,85,247,0.2)] border-purple-500/40" : "shadow-[0_0_40px_rgba(59,130,246,0.2)] border-blue-500/40")
-            : (isVoice ? "border-purple-500/15 shadow-[0_0_20px_rgba(168,85,247,0.08)]" : "border-blue-500/15 shadow-[0_0_20px_rgba(59,130,246,0.08)]"))
+            ? (isVoice ? "shadow-[0_0_40px_rgba(168,85,247,0.2)] border-blue-500/40" : "shadow-[0_0_40px_rgba(59,130,246,0.2)] border-blue-500/40")
+            : (isVoice ? "border-blue-500/15 shadow-[0_0_20px_rgba(168,85,247,0.08)]" : "border-blue-500/15 shadow-[0_0_20px_rgba(59,130,246,0.08)]"))
 
     return (
         <motion.div
@@ -175,17 +183,17 @@ function SelectionCard({ title, desc, icon, tags, onClick, isDark, type, isSelec
             {/* Background Glow Layer */}
             <div className={cn(
                 "absolute inset-0 rounded-[2.5rem] transition-all duration-500 blur-2xl opacity-[0.03] group-hover:opacity-100",
-                isVoice ? "bg-purple-500" : "bg-blue-500"
+                isVoice ? "bg-blue-500" : "bg-blue-500"
             )} />
 
             <div className={cn(
                 "relative h-full p-6 md:p-8 rounded-[2.5rem] border-2 transition-all duration-500 overflow-hidden z-10",
                 // Blur fix: Reduced backdrop-blur on selection to keep content sharp
                 isSelected
-                    ? (isDark ? "bg-slate-800/90 backdrop-blur-none" : "bg-white backdrop-blur-none")
+                    ? (isDark ? "bg-slate-800/90 backdrop-blur-none" : "bg-white backdrop-blur-none shadow-2xl shadow-blue-500/10")
                     : (isDark
                         ? "bg-slate-900/60 backdrop-blur-xl"
-                        : "bg-white/80 backdrop-blur-xl shadow-xl shadow-slate-200/50"),
+                        : "bg-white/80 backdrop-blur-xl shadow-lg shadow-slate-200/40 border-slate-200"),
                 glowClass
             )}>
 
@@ -196,8 +204,8 @@ function SelectionCard({ title, desc, icon, tags, onClick, isDark, type, isSelec
                             className={cn(
                                 "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl border",
                                 isDark
-                                    ? (isVoice ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400")
-                                    : (isVoice ? "bg-purple-50 border-purple-200 text-purple-600" : "bg-blue-50 border-blue-200 text-blue-600")
+                                    ? (isVoice ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400")
+                                    : (isVoice ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-blue-50 border-blue-200 text-blue-600")
                             )}
                         >
                             {icon}
@@ -206,7 +214,7 @@ function SelectionCard({ title, desc, icon, tags, onClick, isDark, type, isSelec
                         {/* Animated Visualizers */}
                         <div className="flex-1 flex justify-end pr-4">
                             {isVoice ? (
-                                <VoiceWave active={isHovered || isSelected} color={isDark ? "#a855f7" : "#9333ea"} />
+                                <VoiceWave active={isHovered || isSelected} color={isDark ? "#3b82f6" : "#2563eb"} />
                             ) : (
                                 <FormPulse active={isHovered || isSelected} color={isDark ? "#3b82f6" : "#2563eb"} />
                             )}
@@ -242,7 +250,7 @@ function SelectionCard({ title, desc, icon, tags, onClick, isDark, type, isSelec
                             className={cn(
                                 "w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 shadow-lg",
                                 isVoice
-                                    ? (isDark ? "bg-purple-600 text-white" : "bg-purple-600 text-white")
+                                    ? (isDark ? "bg-blue-600 text-white" : "bg-blue-600 text-white")
                                     : (isDark ? "bg-blue-600 text-white" : "bg-blue-600 text-white")
                             )}
                         >
@@ -335,3 +343,4 @@ function NeuralMatrixBackground({ active }: { active: boolean }) {
         </div>
     )
 }
+

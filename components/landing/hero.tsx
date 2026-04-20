@@ -1,11 +1,41 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { ArrowRight, Sparkles } from "lucide-react"
 
 export function Hero() {
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false)
+
+  const handleStart = async () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+
+    if (!token) {
+      window.location.href = "/auth"
+      return
+    }
+
+    try {
+      setIsCheckingStatus(true)
+      const { checkOnboardingStatus } = await import("@/lib/api")
+      const isOnboarded = await checkOnboardingStatus()
+
+      if (isOnboarded) {
+        window.location.href = "/dashboard"
+      } else {
+        window.location.href = "/onboarding-conversation"
+      }
+    } catch (err) {
+      console.error("Failed to route user:", err)
+      // Fallback to dashboard if check fails to avoid blocking users
+      window.location.href = "/dashboard"
+    } finally {
+      setIsCheckingStatus(false)
+    }
+  }
+
   return (
     <section className="relative min-h-screen overflow-hidden flex items-center">
       <div className="absolute inset-0 -z-10 pointer-events-none">
@@ -58,18 +88,21 @@ export function Hero() {
             >
               <Button
                 size="lg"
-                onClick={() => {
-                  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
-                  if (token) {
-                    window.location.href = "/dashboard"
-                  } else {
-                    window.location.href = "/auth"
-                  }
-                }}
-                className="bg-secondary hover:bg-secondary/90 text-white shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                disabled={isCheckingStatus}
+                onClick={handleStart}
+                className="bg-secondary hover:bg-secondary/90 text-white shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-70"
               >
-                Start Free with Google
-                <ArrowRight className="w-4 h-4" />
+                {isCheckingStatus ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Synchronizing...
+                  </span>
+                ) : (
+                  <>
+                    Start Free with Google
+                    <ArrowRight className="size-4" />
+                  </>
+                )}
               </Button>
 
             </motion.div>

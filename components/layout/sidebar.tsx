@@ -91,11 +91,11 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
     .toUpperCase()
 
   return (
-    <div className="flex h-full flex-col bg-slate-950 text-slate-300 font-sans border-r border-slate-800/50">
+    <div className="flex h-full flex-col bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 font-sans border-r border-slate-200 dark:border-slate-800/50">
       {/* Logo Section */}
       <div className="flex h-16 items-center justify-between px-6">
         <Link href="/">
-          <Logo className="scale-75 origin-left" variant="white" />
+          <Logo className="scale-75 origin-left" />
         </Link>
         {isMobile && (
           <button
@@ -129,14 +129,14 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
                   className={cn(
                     "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     active
-                      ? "bg-blue-600/10 text-blue-400 ring-1 ring-blue-500/20 shadow-inner"
-                      : "hover:bg-slate-900 hover:text-white"
+                      ? "bg-blue-500/10 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20 shadow-inner"
+                      : "hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-slate-900 dark:hover:text-white"
                   )}
                   aria-current={active ? "page" : undefined}
                 >
                   <Icon className={cn(
                     "size-5 transition-colors",
-                    active ? "text-blue-500" : "text-slate-500 group-hover:text-slate-300"
+                    active ? "text-blue-600 dark:text-blue-500" : "text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300"
                   )} />
                   {item.label}
                   {active && (
@@ -167,13 +167,13 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
                   className={cn(
                     "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     active
-                      ? "bg-blue-600/10 text-blue-400 ring-1 ring-blue-500/20"
-                      : "hover:bg-slate-900 hover:text-white"
+                      ? "bg-blue-500/10 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20"
+                      : "hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-slate-900 dark:hover:text-white"
                   )}
                 >
                   <Icon className={cn(
                     "size-5 transition-colors",
-                    active ? "text-blue-500" : "text-slate-500 group-hover:text-slate-300"
+                    active ? "text-blue-600 dark:text-blue-500" : "text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300"
                   )} />
                   {item.label}
                 </Link>
@@ -184,28 +184,28 @@ export function Sidebar({ onClose, isMobile }: { onClose?: () => void; isMobile?
       </div>
 
       {/* User Profile Card */}
-      <div className="p-3 border-t border-slate-800/50">
+      <div className="p-3 border-t border-slate-200 dark:border-slate-800/50">
         <button
           onClick={() => setProfileExpanded((p) => !p)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-900 transition-all duration-200 group"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-900 transition-all duration-200 group"
         >
           {/* Avatar */}
-          <Avatar className="h-9 w-9 rounded-xl ring-1 ring-white/10 overflow-hidden bg-slate-800 shrink-0">
+          <Avatar className="h-9 w-9 rounded-xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0">
             {avatarUrl ? (
               <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />
             ) : null}
             <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-xs font-black uppercase">
               {initials}
             </AvatarFallback>
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-slate-950" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-950" />
           </Avatar>
 
           {/* Name & Email */}
           <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-semibold text-white truncate leading-none mb-0.5">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate leading-none mb-0.5">
               {displayName}
             </p>
-            <p className="text-[10px] text-slate-500 truncate font-medium">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-medium">
               {user?.email ?? "—"}
             </p>
           </div>

@@ -11,7 +11,7 @@ import { Menu, Home } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { verifyToken, parseJwt, getUserJobs } from "@/lib/api"
+import { verifyToken, parseJwt, getUserJobs, getUserSessions } from "@/lib/api"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -20,61 +20,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
-    if (!token) {
-      router.replace("/auth")
-      return
-    }
-
-    // Check JWT expiry locally for proactive warning
-    const decoded = parseJwt(token)
-    if (decoded && decoded.exp) {
-      const expTime = decoded.exp * 1000
-      const now = Date.now()
-      const fiveMinutes = 5 * 60 * 1000
-
-      if (now > expTime) {
-        // Already expired
-        localStorage.removeItem("token")
-        router.replace("/auth")
-        return
-      } else if (expTime - now < fiveMinutes) {
-        // Warning: expiring soon (could use a toast here)
-        console.warn("[Auth] Session expiring in less than 5 minutes.")
-      }
-    }
-
-    // Validate token and check onboarding status
+    // 1. Initial verification & status fetch
     verifyToken().then(async (valid) => {
       if (!valid) {
+        // Token invalid or expired - middleware might have missed it or session just ended
         localStorage.removeItem("token")
         localStorage.removeItem("user")
         router.replace("/auth")
-      } else {
-        // Token is valid, now check if user has actual jobs/profiles
-        try {
-          const jobsData = await getUserJobs()
-          const jobs = Array.isArray(jobsData) ? jobsData : (jobsData?.jobs || [])
-          
-          const isOnboardingPath = pathname.startsWith("/onboarding")
-          const isJobManagementPath = pathname === "/onboarding-jobs"
-          
-          // Logic: Only redirect if they have ZERO jobs/context.
-          // This allows existing users with jobs to access the dashboard even without recent sessions.
-          const needsOnboarding = jobs.length === 0
-          
-          if (needsOnboarding && !isOnboardingPath && !isJobManagementPath) {
-            console.log("[AuthGuard] No jobs found. Redirecting to onboarding setup.")
-            router.replace("/onboarding-selection")
-          } else {
-            setAuthorized(true)
-          }
-        } catch (err) {
-          console.error("[AuthGuard] Failed to fetch onboarding status:", err)
-          // Fallback: allow access if API fails to avoid locking users out
-          setAuthorized(true)
-        }
+        return
       }
+
+      // 2. We allow users to access the dashboard unconditionally, enforcing limits at the action level instead.
+      setAuthorized(true)
     })
   }, [router, pathname])
 
@@ -87,8 +44,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (!authorized) return null
 
   // Check if we are on dashboard or onboarding to remove sidebar/topbar
-  const isCustomLayout = pathname === "/onboarding-selection" ||
-    pathname === "/onboarding-form" ||
+  const isCustomLayout = pathname === "/onboarding-form" ||
     pathname === "/onboarding-conversation"
 
   if (isCustomLayout) {

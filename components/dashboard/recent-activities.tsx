@@ -112,7 +112,7 @@ export function RecentActivities({ items, onLoadMore, isLoading, hasMore }: Rece
                                 {finalizedIsScrum ? (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleCreateTicket(item) }}
-                                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 shadow-lg shadow-violet-500/20 transition-all active:scale-95 border border-violet-500"
+                                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-violet-500/5 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-violet-500/10 dark:hover:bg-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.1)] transition-all active:scale-95 border border-violet-300 dark:border-violet-500/50"
                                     >
                                         <Ticket className="size-3.5" />
                                         Scrum Tickets
@@ -120,7 +120,7 @@ export function RecentActivities({ items, onLoadMore, isLoading, hasMore }: Rece
                                 ) : (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleChat(item) }}
-                                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 dark:bg-cyan-500 text-white dark:text-[#0A0F1E] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 dark:hover:bg-cyan-400 shadow-lg shadow-blue-500/20 dark:shadow-cyan-500/20 transition-all active:scale-95 border border-blue-500 dark:border-cyan-400/50"
+                                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/5 dark:bg-cyan-500/10 text-blue-700 dark:text-cyan-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/10 dark:hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)] dark:shadow-[0_0_10px_rgba(6,182,212,0.1)] transition-all active:scale-95 border border-blue-300 dark:border-cyan-500/50"
                                     >
                                         <MessageSquare className="size-3.5" />
                                         Chat with AI
@@ -132,22 +132,6 @@ export function RecentActivities({ items, onLoadMore, isLoading, hasMore }: Rece
                 })}
             </div>
 
-            {hasMore !== false && (
-                <button
-                    onClick={onLoadMore}
-                    disabled={isLoading}
-                    className="w-full py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 border-t border-dashed border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-blue-600 dark:hover:text-cyan-400 transition-all uppercase tracking-[0.2em] disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                    {isLoading ? (
-                        <>
-                            <div className="w-3 h-3 border-2 border-slate-300 dark:border-slate-700 border-t-blue-500 dark:border-t-slate-400 rounded-full animate-spin" />
-                            Loading...
-                        </>
-                    ) : (
-                        "View Full Activity History"
-                    )}
-                </button>
-            )}
         </div>
     )
 }

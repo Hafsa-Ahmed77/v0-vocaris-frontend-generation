@@ -8,10 +8,17 @@ import { useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Zap, MonitorPlay, LayoutDashboard, Search, Filter, SlidersHorizontal, Calendar, ArrowRight, CalendarClock, History, Users, MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { getUpcomingMeetings, getMeetingStats, getMeetingHistory, startMeeting, getUserSessions, getUserJobs, getScheduledMeetings, endAllMeetings } from "@/lib/api"
+import { getUpcomingMeetings, getMeetingStats, getMeetingHistory, startMeeting, getUserSessions, getUserJobs, getJobDetails, getScheduledMeetings, endAllMeetings } from "@/lib/api"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -19,7 +26,7 @@ export default function DashboardPage() {
   const [isStartingAgent, setIsStartingAgent] = useState(false)
   const [loadingScheduledIds, setLoadingScheduledIds] = useState<string[]>([])
   const [userName, setUserName] = useState("User")
-  const limit = 50
+  const [limit, setLimit] = useState(5)
 
   // Load user info
   useEffect(() => {
@@ -60,7 +67,7 @@ export default function DashboardPage() {
   }, { refreshInterval: 30000 })
 
   const { data: historyData, isLoading: historyLoading } = useSWR(
-    ["meeting-history", offset],
+    ["meeting-history", limit, offset],
     async () => {
       const token = localStorage.getItem("token")
       if (!token) return null
@@ -68,14 +75,31 @@ export default function DashboardPage() {
     },
     { keepPreviousData: true }
   )
-  
-  const { data: jobsData } = useSWR("user-jobs", async () => {
-    const token = localStorage.getItem("token")
-    if (!token) return null
-    return await getUserJobs()
-  })
 
-  const jobs = Array.isArray(jobsData) ? jobsData : (jobsData?.jobs || [])
+  const { data: jobs, isLoading: isJobsLoading } = useSWR("user-jobs-hydrated", async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return []
+    const data = await getUserJobs()
+    const list = Array.isArray(data) ? data : (data?.jobs || [])
+
+    const jobsWithSessions = await Promise.all(list.map(async (job: any) => {
+      try {
+        const details = await getJobDetails(job.job_id) as any
+        const sessions = details?.conversation_sessions || details?.voice_sessions || details?.onboarding_sessions || details?.sessions || details?.recordings || details?.voice_meeting_sessions || details?.onboarding_history || []
+        const directSid = details?.session_id || details?.bot_id || details?.id;
+
+        if (sessions && sessions.length > 0) {
+          const latest = sessions[sessions.length - 1]
+          const sid = latest.session_id || latest.bot_id || latest.id || latest.uuid
+          return { ...job, last_session_id: sid }
+        } else if (directSid) {
+          return { ...job, last_session_id: directSid }
+        }
+      } catch (e) { }
+      return job
+    }))
+    return jobsWithSessions
+  })
 
   const { data: scheduledData, mutate: mutateScheduled } = useSWR("scheduled-meetings", async () => {
     const token = localStorage.getItem("token")
@@ -87,7 +111,7 @@ export default function DashboardPage() {
 
   const handleEndAll = async () => {
     if (!window.confirm("Are you sure you want to terminate all active sessions? This action cannot be undone.")) return
-    
+
     try {
       await endAllMeetings()
       toast.success("Successfully sent termination signal to all agents.")
@@ -186,12 +210,12 @@ export default function DashboardPage() {
               {statsLoading ? "Scanning..." : `${stats?.active_in_call || 0} Live Sessions`}
             </div>
             {activeSessions.length > 0 && (
-                <button 
-                  onClick={handleEndAll}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-black text-[10px] uppercase tracking-wider rounded-lg border border-rose-500/20 transition-all active:scale-95"
-                >
-                  Terminate All
-                </button>
+              <button
+                onClick={handleEndAll}
+                className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-black text-[10px] uppercase tracking-wider rounded-lg border border-rose-500/20 transition-all active:scale-95"
+              >
+                Terminate All
+              </button>
             )}
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[#1E293B] dark:text-white font-bold text-xs backdrop-blur-sm shadow-sm dark:shadow-none">
               <MonitorPlay className="size-3.5 text-slate-400 dark:text-azure-400" />
@@ -328,7 +352,7 @@ export default function DashboardPage() {
 
         {/* Left Column (3/5): Action area */}
         <div className="lg:col-span-3 space-y-6">
-          <QuickJoin onStartAgent={handleStartAgent} isLoading={isStartingAgent} jobs={jobs} />
+          <QuickJoin onStartAgent={handleStartAgent} isLoading={isStartingAgent} isJobsLoading={isJobsLoading} jobs={jobs} />
 
           <div className="space-y-4">
             <div className="flex items-center justify-between px-2">
@@ -372,9 +396,17 @@ export default function DashboardPage() {
               <div className="w-1.5 h-6 bg-violet-600 rounded-full" />
               <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Recent Meeting History</h2>
             </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-violet-50 dark:bg-violet-900/10 rounded-lg border border-violet-100 dark:border-violet-800/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-              <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest">Realtime</span>
+            <div className="flex items-center gap-3">
+              <Select value={String(limit)} onValueChange={(val) => { setLimit(Number(val)); setOffset(0); }}>
+                <SelectTrigger className="h-7 w-auto min-w-[140px] px-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-black tracking-widest uppercase">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5" className="text-xs font-bold">Last 5 Meetings</SelectItem>
+                  <SelectItem value="10" className="text-xs font-bold">Last 10 Meetings</SelectItem>
+                  <SelectItem value="15" className="text-xs font-bold">Last 15 Meetings</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

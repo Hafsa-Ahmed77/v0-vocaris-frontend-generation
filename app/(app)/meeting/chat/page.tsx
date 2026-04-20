@@ -2,11 +2,12 @@
 
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState, useRef, useEffect } from "react"
-import { Send, Bot, User, Cpu, Sparkles, Loader2, Zap, ArrowLeft, Terminal, Shield, Network, MessageSquare } from "lucide-react"
+import { Send, Bot, User, Cpu, Sparkles, Loader2, Zap, ArrowLeft, Terminal, Shield, Network, MessageSquare, Inbox } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch, queryMeetingTranscript } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { MeetingSelector } from "@/components/meeting/meeting-selector"
 
 type Message = {
   role: "user" | "ai"
@@ -64,28 +65,11 @@ function MeetingChatContent() {
   useEffect(() => scrollToBottom(), [messages])
 
   if (!botId) return (
-    <div className="flex-1 flex items-center justify-center p-6 bg-transparent">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center space-y-8 p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 backdrop-blur-3xl shadow-2xl dark:shadow-[0_0_100px_rgba(0,0,0,0.5)] max-w-xl w-full"
-      >
-        <div className="w-16 h-16 md:w-24 md:h-24 bg-blue-500/10 border border-blue-500/20 rounded-[1.8rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto text-blue-600 dark:text-blue-500 shadow-xl dark:shadow-[0_0_40px_rgba(59,130,246,0.2)]">
-          <MessageSquare className="w-8 h-8 md:w-12 md:h-12" />
-        </div>
-        <div className="space-y-3">
-          <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Meeting Chat</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[9px] md:text-[10px] max-w-[280px] mx-auto leading-loose text-balance px-4">
-            Unlock Meeting Insights. Your chat interactions and summary arise here.
-          </p>
-        </div>
-        <Button
-          onClick={() => router.push("/dashboard")}
-          className="bg-blue-600 hover:bg-blue-500 text-white rounded-[1.5rem] md:rounded-[1.8rem] h-12 md:h-16 px-6 md:px-12 font-bold text-sm md:text-lg shadow-xl shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 w-full md:w-auto"
-        >
-          Return to Command Center
-        </Button>
-      </motion.div>
+    <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50 dark:bg-[#0f172a] min-h-screen">
+      <MeetingSelector 
+        type="chat" 
+        onSelect={(id) => router.push(`/meeting/chat?bot_id=${id}`)} 
+      />
     </div>
   )
 
@@ -194,6 +178,7 @@ function MeetingChatContent() {
                     <div className="h-0.5 w-6 md:w-12 bg-gradient-to-l from-transparent to-blue-500/50" />
                   </div>
                 </div>
+
 
                 <div className="w-full space-y-3">
                   <div className="relative h-2 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden border border-slate-300 dark:border-white/10 p-0.5">

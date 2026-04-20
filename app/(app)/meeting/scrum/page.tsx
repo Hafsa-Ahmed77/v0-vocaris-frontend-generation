@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { ClickUpIntegration } from "@/components/scrum/clickup-integration"
+import { MeetingSelector } from "@/components/meeting/meeting-selector"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -214,6 +215,15 @@ function ScrumBoardContent() {
             toast.success("Task updated.")
         }
     }
+
+    if (!botId) return (
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50 dark:bg-[#0f172a] min-h-screen">
+            <MeetingSelector 
+                type="scrum" 
+                onSelect={(id) => router.push(`/meeting/scrum?bot_id=${id}`)} 
+            />
+        </div>
+    )
 
     return (
         <div className="bg-slate-50 dark:bg-transparent text-slate-900 dark:text-white selection:bg-blue-500/30 transition-colors duration-700 no-scrollbar">
