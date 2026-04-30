@@ -46,7 +46,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="relative py-32 overflow-hidden transition-colors duration-500">
+    <section id="how-it-works" className="relative py-32 overflow-hidden bg-transparent transition-colors duration-500">
       {/* Dynamic Background Atmospheric Effects */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-blue-500/5 dark:bg-blue-600/5 blur-[120px] rounded-full animate-pulse" />

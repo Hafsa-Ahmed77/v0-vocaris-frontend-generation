@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
@@ -31,14 +31,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { getUserJobs, createJob, updateJob, deleteJob, getUserSessions, getJobDetails, getVoiceMeetingTranscripts, updateVoiceMessage } from "@/lib/api"
+import useSWR from "swr"
+import { PremiumLoader } from "@/components/ui/premium-loader"
+import { getUserJobs, createJob, updateJob, deleteJob, getJobDetails, getVoiceMeetingTranscripts, updateVoiceMessage } from "@/lib/api"
 
 type Job = {
-    job_id: string
-    company_name: string
-    role: string
-    description?: string
-    last_session_id?: string // Client-side hydration of session link
+    job_id: string;
+    company_name: string;
+    role: string;
+    last_session_id?: string;
 }
 
 export default function OnboardingJobsPage() {
@@ -51,8 +52,8 @@ export default function OnboardingJobsPage() {
     }, [])
 
     const isDarkMode = mounted ? (resolvedTheme === "dark") : true
-    const [jobs, setJobs] = useState<Job[]>([])
-    const [loading, setLoading] = useState(true)
+    const [userId, setUserId] = useState<string | null>(null)
+    const [userName, setUserName] = useState("User")
 
     // Neural Review Modal State
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
@@ -65,10 +66,9 @@ export default function OnboardingJobsPage() {
 
     const [showForm, setShowForm] = useState(false)
     const [submitting, setSubmitting] = useState(false)
-    const [form, setForm] = useState({ company_name: "", role: "", description: "" })
-    const [userId, setUserId] = useState<string | null>(null)
-    const [userName, setUserName] = useState("User")
+    const [form, setForm] = useState({ company_name: "", role: "" })
     const [error, setError] = useState<string | null>(null)
+    const [showSuccess, setShowSuccess] = useState(false)
 
     // Editing & Deleting
     const [editingJob, setEditingJob] = useState<Job | null>(null)
@@ -93,63 +93,33 @@ export default function OnboardingJobsPage() {
         }
     }, [])
 
-    const fetchAndHydrateJobs = useCallback(async (showLoading = true) => {
-        if (!userId) return
-        if (showLoading) setLoading(true)
-        try {
-            const data = await getUserJobs() as any
-            const list = Array.isArray(data) ? data : (data?.jobs || [])
-            
-            // Set initial list so user sees names immediately, even if status is pending
-            setJobs(list)
+    const { data: jobs = [], isLoading: loading, mutate } = useSWR("user-jobs-hydrated", async () => {
+        const token = localStorage.getItem("token")
+        if (!token) return []
+        const data = await getUserJobs()
+        const list = Array.isArray(data) ? data : (data?.jobs || [])
 
-            // Background Hydration: Check session status for each job
-            const jobsWithSessions = await Promise.all(list.map(async (job: any) => {
-                try {
-                    const details = await getJobDetails(job.job_id) as any
-                    
-                    // Check ALL possible session fields (Normalized for System B)
-                    const sessions = details?.conversation_sessions ||
-                        details?.voice_sessions ||
-                        details?.onboarding_sessions ||
-                        details?.sessions ||
-                        details?.recordings ||
-                        details?.voice_meeting_sessions ||
-                        details?.onboarding_history || [];
+        const jobsWithSessions = await Promise.all(list.map(async (job: any) => {
+            try {
+                const details = await getJobDetails(job.job_id) as any
+                const sessions = details?.conversation_sessions || details?.voice_sessions || details?.onboarding_sessions || details?.sessions || details?.recordings || details?.voice_meeting_sessions || details?.onboarding_history || []
+                const directSid = details?.session_id || details?.bot_id || details?.id;
 
-                    const directSid = details?.session_id || details?.bot_id || details?.id;
-
-                    if (sessions && sessions.length > 0) {
-                        const latest = sessions[sessions.length - 1]
-                        const sid = latest.session_id || latest.bot_id || latest.id || latest.uuid
-                        return { ...job, last_session_id: sid }
-                    } else if (directSid) {
-                        return { ...job, last_session_id: directSid }
-                    }
-                } catch (e) {
-                    console.warn(`[JobManager] Failed to hydrate session for job ${job.job_id}`, e)
+                if (sessions && sessions.length > 0) {
+                    const latest = sessions[sessions.length - 1]
+                    const sid = latest.session_id || latest.bot_id || latest.id || latest.uuid
+                    return { ...job, last_session_id: sid }
+                } else if (directSid) {
+                    return { ...job, last_session_id: directSid }
                 }
-                return job
-            }))
-            setJobs(jobsWithSessions)
-        } catch (err) {
-            console.error("[JobManager] Fetch failed:", err)
-            setJobs([])
-        } finally {
-            if (showLoading) setLoading(false)
-        }
-    }, [userId])
-
-    useEffect(() => {
-        if (!userId) {
-            const timeout = setTimeout(() => {
-                if (!userId) setLoading(false)
-            }, 2000)
-            return () => clearTimeout(timeout)
-        }
-
-        fetchAndHydrateJobs()
-    }, [userId, fetchAndHydrateJobs])
+            } catch (e) { }
+            return job
+        }))
+        return jobsWithSessions
+    }, {
+        revalidateOnFocus: false,
+        dedupingInterval: 60000 // Cache for 1 minute
+    })
 
     const handleCreate = async () => {
         if (!userId || !form.company_name.trim() || !form.role.trim()) return
@@ -159,12 +129,16 @@ export default function OnboardingJobsPage() {
             await createJob({
                 company_name: form.company_name.trim(),
                 role: form.role.trim(),
-                description: form.description.trim() || undefined,
             })
-            // Refresh and Refresh results immediately with hydration
-            await fetchAndHydrateJobs(false)
-            setForm({ company_name: "", role: "", description: "" })
+            // Refresh results immediately with hydration
+            mutate()
+            setForm({ company_name: "", role: "" })
             setShowForm(false)
+            
+            // Show Success Modal
+            setShowSuccess(true)
+            // Auto-hide after 3 seconds
+            setTimeout(() => setShowSuccess(false), 3000)
         } catch (e: any) {
             setError("Failed to create job. Please try again.")
         } finally {
@@ -180,12 +154,11 @@ export default function OnboardingJobsPage() {
             await updateJob(editingJob.job_id, {
                 company_name: form.company_name.trim(),
                 role: form.role.trim(),
-                description: form.description.trim() || undefined,
             })
-            // Refresh and Refresh results immediately with hydration
-            await fetchAndHydrateJobs(false)
+            // Refresh results immediately with hydration
+            mutate()
             setEditingJob(null)
-            setForm({ company_name: "", role: "", description: "" })
+            setForm({ company_name: "", role: "" })
         } catch (e: any) {
             setError("Failed to update job.")
         } finally {
@@ -198,7 +171,7 @@ export default function OnboardingJobsPage() {
         setIsDeleting(jobId)
         try {
             await deleteJob(jobId)
-            setJobs(prev => prev.filter(j => j.job_id !== jobId))
+            mutate()
         } catch (e: any) {
             setError("Failed to delete job.")
         } finally {
@@ -257,7 +230,7 @@ export default function OnboardingJobsPage() {
     }
 
     const handleStartSession = (job: Job) => {
-        router.push(`/onboarding-conversation?job_id=${job.job_id}`)
+        router.push(`/onboarding-conversation?job_id=${job.job_id}&auto_start=true`)
     }
 
     const openReviewModal = async (job: Job) => {
@@ -340,7 +313,7 @@ export default function OnboardingJobsPage() {
 
                 <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity duration-300">
                     <button
-                        onClick={(e) => { e.stopPropagation(); setForm({ company_name: job.company_name, role: job.role, description: job.description || "" }); setEditingJob(job) }}
+                        onClick={(e) => { e.stopPropagation(); setForm({ company_name: job.company_name, role: job.role }); setEditingJob(job) }}
                         className={cn("p-2 rounded-lg transition-all duration-300 scale-90 group-hover:scale-100", isDarkMode ? "hover:bg-blue-500/20 text-blue-300 hover:text-blue-200" : "hover:bg-blue-100 text-blue-500 hover:text-blue-700")}
                         title="Edit Job"
                     >
@@ -356,18 +329,14 @@ export default function OnboardingJobsPage() {
                     </h3>
                     {job.last_session_id && (
                         <div className="px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[7px] font-black text-cyan-400 uppercase tracking-widest whitespace-nowrap">
-                            PROFILE READY
+                            VOICE READY
                         </div>
                     )}
                 </div>
                 <p className={cn("text-xs font-bold uppercase tracking-widest", isDarkMode ? "text-blue-300/80 group-hover:text-blue-200" : "text-blue-600 group-hover:text-blue-700")}>
                     @ {job.company_name}
                 </p>
-                {job.description && (
-                    <p className={cn("text-sm mt-3 line-clamp-2 font-medium leading-relaxed", isDarkMode ? "text-blue-200/60 group-hover:text-blue-200/80" : "text-slate-600")}>
-                        {job.description}
-                    </p>
-                )}
+                {/* Description removed as per user request */}
             </div>
 
             <button
@@ -392,12 +361,12 @@ export default function OnboardingJobsPage() {
                 {job.last_session_id ? (
                     <>
                         <Sparkles className="w-3.5 h-3.5" />
-                        Review Neural Profile
+                        Review Voice Profile
                     </>
                 ) : (
                     <>
                         <Mic className="w-3.5 h-3.5" />
-                        Launch Neural Sync
+                        Setup Voice Profile
                     </>
                 )}
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -426,8 +395,8 @@ export default function OnboardingJobsPage() {
                                 <Plus className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className={cn("text-xl font-black uppercase tracking-tight", isDarkMode ? "text-blue-50" : "text-slate-900")}>Create New Context</h2>
-                                <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-1", isDarkMode ? "text-blue-400/60" : "text-slate-500")}>Add a new job representation for the AI</p>
+                                <h2 className={cn("text-xl font-black uppercase tracking-tight", isDarkMode ? "text-blue-50" : "text-slate-900")}>Add New Profile</h2>
+                                <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-1", isDarkMode ? "text-blue-400/60" : "text-slate-500")}>Create a custom profile for your meetings</p>
                             </div>
                         </div>
 
@@ -475,7 +444,7 @@ export default function OnboardingJobsPage() {
                                             <span>Creating...</span>
                                         </div>
                                     ) : (
-                                        <span>Create Context</span>
+                                        <span>Create Profile</span>
                                     )}
                                 </Button>
                             </div>
@@ -486,7 +455,7 @@ export default function OnboardingJobsPage() {
 
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-cyan-400" />
                     </div>
                 ) : (
                     <>
@@ -495,7 +464,7 @@ export default function OnboardingJobsPage() {
                             <div className="mb-12">
                                 <div className="flex items-center gap-2 mb-6">
                                     <div className="w-1.5 h-6 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
-                                    <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Contexts Pending Onboarding</h2>
+                                    <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Profiles Pending Setup</h2>
                                 </div>
                                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                     <AnimatePresence>
@@ -510,7 +479,7 @@ export default function OnboardingJobsPage() {
                             <div className="mb-8">
                                 <div className="flex items-center gap-2 mb-6">
                                     <div className="w-1.5 h-6 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
-                                    <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Neural Profiles Ready</h2>
+                                    <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Voice Profiles Ready</h2>
                                 </div>
                                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                     <AnimatePresence>
@@ -560,9 +529,9 @@ export default function OnboardingJobsPage() {
                                 </button>
 
                                 <div>
-                                    <h2 className={cn("text-2xl font-black uppercase tracking-tight", isDarkMode ? "text-blue-50" : "text-blue-950")}>Edit Job</h2>
+                                    <h2 className={cn("text-2xl font-black uppercase tracking-tight", isDarkMode ? "text-blue-50" : "text-blue-950")}>Edit Profile</h2>
                                     <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-1", isDarkMode ? "text-blue-400/60" : "text-blue-500")}>
-                                        Update your contextual information
+                                        Update your profile details
                                     </p>
                                 </div>
 
@@ -597,21 +566,7 @@ export default function OnboardingJobsPage() {
                                             disabled={submitting}
                                         />
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className={cn("text-[10px] font-black uppercase tracking-widest flex items-center gap-2", isDarkMode ? "text-blue-400/80" : "text-blue-600")}>
-                                            Description <span className={cn("text-[8px] px-1.5 py-0.5 rounded-sm", isDarkMode ? "text-blue-300/60 bg-blue-500/10" : "text-blue-700 bg-blue-100")}>Optional</span>
-                                        </label>
-                                        <Input
-                                            value={form.description}
-                                            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                            placeholder="Brief context about the role..."
-                                            className={cn(
-                                                "h-12 rounded-xl font-bold transition-all focus:ring-2 disabled:opacity-50",
-                                                isDarkMode ? "bg-[#0f172a] border-blue-500/30 focus:border-blue-500/50 focus:ring-blue-500/30 text-white placeholder:text-blue-500/40" : "bg-white border-blue-200 focus:border-blue-400 focus:ring-blue-500/20 placeholder:text-blue-300"
-                                            )}
-                                            disabled={submitting}
-                                        />
-                                    </div>
+                                    {/* Description field removed */}
                                 </div>
 
                                 <Button
@@ -692,7 +647,7 @@ export default function OnboardingJobsPage() {
                                 <div className="flex-1 overflow-y-auto pr-2 min-h-[200px]">
                                     {loadingSessions ? (
                                         <div className="flex flex-col items-center justify-center h-full space-y-4">
-                                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                                            <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-cyan-400" />
                                             <span className={cn("text-xs font-bold uppercase tracking-widest", isDarkMode ? "text-blue-400/60" : "text-blue-500/60")}>Loading transcripts...</span>
                                         </div>
                                     ) : jobSessions.length === 0 ? (
@@ -779,7 +734,7 @@ export default function OnboardingJobsPage() {
                                     </div>
                                     <div className="flex flex-col">
                                         <h2 className={cn("text-xl font-black uppercase tracking-tight", isDarkMode ? "text-white" : "text-slate-900")}>
-                                            Neural Sync Review
+                                            Voice Profile Review
                                         </h2>
                                         <div className="flex items-center gap-2">
                                             <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest leading-none">
@@ -824,7 +779,7 @@ export default function OnboardingJobsPage() {
                                                         </span>
                                                         {msg.is_edited && (
                                                             <div className="flex items-center gap-1 text-cyan-500/60">
-                                                                <span className="text-[6px] font-black uppercase tracking-widest">Corrected</span>
+                                                                <span className="text-[7px] md:text-xs font-black uppercase tracking-[0.3em]">Review Mode Active</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -911,6 +866,59 @@ export default function OnboardingJobsPage() {
                                     Finalize & Save Profile
                                 </button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Processing Overlay */}
+            <AnimatePresence>
+                {submitting && (
+                    <PremiumLoader 
+                        message="Creating Profile" 
+                        subtext="Building Neural Voice Profile" 
+                        className="fixed inset-0 z-[100]" 
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Success Modal */}
+            <AnimatePresence>
+                {showSuccess && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className={cn(
+                                "w-full max-w-sm rounded-[2.5rem] p-8 border text-center relative overflow-hidden",
+                                isDarkMode ? "bg-slate-900 border-emerald-500/30 shadow-[0_0_50px_rgba(16,185,129,0.2)]" : "bg-white border-emerald-200 shadow-2xl shadow-emerald-500/10"
+                            )}
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
+                            
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", damping: 12, delay: 0.2 }}
+                                className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                            >
+                                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                            </motion.div>
+
+                            <h3 className={cn("text-2xl font-black uppercase tracking-tight mb-2", isDarkMode ? "text-white" : "text-slate-900")}>
+                                Profile Created
+                            </h3>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                                Your voice profile has been successfully saved. You can now use it for meetings.
+                            </p>
+
+                            <Button
+                                onClick={() => setShowSuccess(false)}
+                                className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl border border-emerald-400 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 uppercase text-[10px] tracking-widest"
+                            >
+                                Awesome
+                            </Button>
                         </motion.div>
                     </div>
                 )}

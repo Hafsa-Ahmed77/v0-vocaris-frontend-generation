@@ -32,7 +32,7 @@ export function ContactUs() {
   }
 
   return (
-    <section id="contact" className="relative py-32 overflow-hidden bg-white dark:bg-[#0f172a] transition-colors duration-500">
+    <section id="contact" className="relative py-32 overflow-hidden bg-transparent transition-colors duration-500">
       {/* Cinematic Atmospheric Effects */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/5 dark:bg-blue-600/10 rounded-full blur-[120px] animate-pulse" />

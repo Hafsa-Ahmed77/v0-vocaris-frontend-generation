@@ -83,40 +83,34 @@ export function SiteHeader() {
     .toUpperCase()
 
   return (
-    <header className="sticky top-0 z-[100] w-full">
-      <div className={cn(
-        "glass border-b transition-all duration-300 backdrop-blur-xl",
-        "border-slate-200/60 bg-white/70 shadow-[0_0_20px_rgba(0,0,0,0.03)]",
-        "dark:border-white/10 dark:bg-gradient-to-r dark:from-[#0A0F1C]/90 dark:via-[#111827]/80 dark:to-[#1E293B]/90 dark:shadow-[0_0_25px_rgba(59,130,246,0.15)]"
-      )}>
+    <header className="fixed top-0 left-0 z-[100] w-full transition-all duration-500">
+      <div className="mx-auto flex h-16 lg:h-20 max-w-full items-center justify-between px-3 lg:px-6 relative">
+        {/* Logo - Far Left */}
+        <Link href="/" className="transition-all hover:scale-105 active:scale-95 group shrink-0">
+          <Logo className="scale-[0.7] lg:scale-100 origin-left drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
+        </Link>
 
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          {/* Logo */}
-          <Link href="/">
-            <Logo />
-          </Link>
-
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-12">
+        {/* Navigation - Absolute Center (Hidden on Mobile) */}
+        <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-4">
+          {[
+            { label: "How it works", href: "/#how-it-works" },
+            { label: "Contact", href: "/#contact" },
+          ].map((item) => (
             <Link
-              href="/#how-it-works"
-              className="text-base font-black text-indigo-900/80 dark:text-white/90 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+              key={item.label}
+              href={item.href}
+              className="px-6 py-2.5 rounded-full border border-slate-200 dark:border-white/10 bg-white/5 backdrop-blur-md text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-white/80 hover:text-blue-600 dark:hover:text-cyan-400 hover:border-blue-500/50 dark:hover:border-cyan-400/50 transition-all shadow-lg"
             >
-              How it works
+              {item.label}
             </Link>
-            <Link
-              href="/#contact"
-              className="text-base font-black text-indigo-900/80 dark:text-white/90 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-            >
-              Contact
-            </Link>
-          </nav>
+          ))}
+        </nav>
 
-          {/* Right controls */}
-          <div className="flex items-center gap-2">
-            <div className="hidden md:block mr-1">
-              <ThemeToggle />
-            </div>
+        {/* Controls - Far Right */}
+        <div className="flex items-center gap-1.5 lg:gap-4 lg:pl-4 lg:border-l border-slate-200/50 dark:border-white/10 shrink-0">
+          <div className="scale-75 lg:scale-100">
+            <ThemeToggle />
+          </div>
 
             {isLoggedIn ? (
               <div className="flex items-center" ref={dropdownRef}>
@@ -125,9 +119,9 @@ export function SiteHeader() {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="flex items-center gap-2 p-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                    className="flex items-center gap-2 p-1 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
                   >
-                    <Avatar className="h-8 w-8 rounded-lg ring-1 ring-white/10 overflow-hidden bg-slate-800">
+                    <Avatar className="h-9 w-9 rounded-lg ring-1 ring-white/10 overflow-hidden bg-slate-800">
                       {avatarUrl ? (
                         <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />
                       ) : null}
@@ -135,7 +129,6 @@ export function SiteHeader() {
                         {initials}
                       </AvatarFallback>
                     </Avatar>
-                    <ChevronDown className={cn("size-3.5 text-slate-400 transition-transform hidden sm:block", isProfileOpen && "rotate-180")} />
                   </motion.button>
 
                   {/* Profile Dropdown Menu */}
@@ -146,7 +139,7 @@ export function SiteHeader() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl bg-[#0F172A] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[110]"
+                        className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl bg-[#0F172A] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[110]"
                       >
                         {/* Header Info */}
                         <div className="p-4 bg-gradient-to-b from-white/5 to-transparent border-b border-white/5 text-center">
@@ -200,7 +193,7 @@ export function SiteHeader() {
               <Button
                 asChild
                 size="sm"
-                className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-md hover:shadow-lg transition-all font-bold rounded-xl px-6"
+                className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg hover:shadow-blue-500/20 transition-all font-bold rounded-xl px-8 h-11"
               >
                 <Link href="/auth">Sign in</Link>
               </Button>
@@ -209,7 +202,7 @@ export function SiteHeader() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 text-indigo-950 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg md:hidden transition-colors"
+              className="p-2 text-indigo-950 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg lg:hidden transition-colors"
               aria-label="Toggle menu"
             >
               <motion.div
@@ -221,7 +214,6 @@ export function SiteHeader() {
             </button>
           </div>
         </div>
-      </div>
 
       {/* Mobile Menu Dropdown */}
       <AnimatePresence>
@@ -231,7 +223,7 @@ export function SiteHeader() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden border-b border-slate-200 dark:border-white/10 bg-white/95 dark:bg-[#0A0F1C]/95 backdrop-blur-2xl overflow-hidden"
+            className="lg:hidden border-b border-slate-200 dark:border-white/10 bg-white/95 dark:bg-[#0A0F1C]/95 backdrop-blur-2xl overflow-hidden"
           >
             <div className="p-6 space-y-6">
               <nav className="flex flex-col gap-4">
@@ -270,18 +262,6 @@ export function SiteHeader() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Gradient underline animation */}
-      <motion.div
-        className="h-0.5 w-full"
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: 1 }}
-        transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1] }}
-        style={{
-          transformOrigin: "0% 50%",
-          background: "linear-gradient(90deg, rgb(99, 102, 241), rgb(56, 189, 248), transparent)",
-        }}
-      />
     </header>
   )
 }

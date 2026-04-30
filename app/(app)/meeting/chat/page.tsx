@@ -37,11 +37,11 @@ function MeetingChatContent() {
     let currentStep = 0
 
     const statuses = [
-      { threshold: 0, text: "INITIALIZING_NEURAL_LINK" },
-      { threshold: 25, text: "LOCATING_TRANSCRIPT_BLOCKS" },
-      { threshold: 50, text: "SYNTHESIZING_SEMANTIC_INDEX" },
-      { threshold: 75, text: "CALIBRATING_QUERY_ENGINE" },
-      { threshold: 90, text: "STABILIZING_CONTEXT_WINDOW" }
+      { threshold: 0, text: "INITIALIZING_AI_ASSISTANT" },
+      { threshold: 25, text: "LOCATING_MEETING_TRANSCRIPT" },
+      { threshold: 50, text: "PREPARING_MEETING_DATA" },
+      { threshold: 75, text: "SETTING_UP_SEARCH" },
+      { threshold: 90, text: "PREPARING_CHAT" }
     ]
 
     const timer = setInterval(() => {
@@ -174,7 +174,7 @@ function MeetingChatContent() {
                   </motion.h2>
                   <div className="flex items-center justify-center gap-2">
                     <div className="h-0.5 w-6 md:w-12 bg-gradient-to-r from-transparent to-blue-500/50" />
-                    <p className="text-[7px] md:text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-tight md:tracking-[0.3em]">SECURE_NEURAL_SYNTHESIS</p>
+                    <p className="text-[7px] md:text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-tight md:tracking-[0.3em]">SECURE_MEETING_ANALYSIS</p>
                     <div className="h-0.5 w-6 md:w-12 bg-gradient-to-l from-transparent to-blue-500/50" />
                   </div>
                 </div>
@@ -224,13 +224,13 @@ function MeetingChatContent() {
                 </div>
               </div>
               <div className="space-y-4">
-                <h2 className="text-xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase tracking-normal md:tracking-[0.1em]">Intelligence Active</h2>
+                <h2 className="text-xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase tracking-normal md:tracking-[0.1em]">Assistant Ready</h2>
                 <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-                  <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 px-3 py-0.5 md:px-4 md:py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest">Context Ready</Badge>
+                  <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 px-3 py-0.5 md:px-4 md:py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest">Meeting Ready</Badge>
                   <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 px-3 py-0.5 md:px-4 md:py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest">RAG Online</Badge>
                 </div>
                 <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest max-w-lg leading-relaxed px-6">
-                  Semantic index compiled. Unlock insights now.
+                  Meeting data processed. Ask anything.
                 </p>
               </div>
             </motion.div>
@@ -328,7 +328,7 @@ function MeetingChatContent() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Query neural network..."
+                placeholder="Ask a question about the meeting..."
                 className="flex-1 bg-transparent border-none py-3 md:py-6 px-1 md:px-2 text-sm md:text-lg font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-indigo-900/40 outline-none resize-none min-h-[48px] md:min-h-[72px] max-h-48 custom-scrollbar"
                 rows={1}
               />
@@ -358,7 +358,7 @@ function MeetingChatContent() {
                 <div className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-75" />
                 <div className="relative w-2 h-2 rounded-full bg-green-500" />
               </div>
-              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">Neural Uplink Persistent</span>
+              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">AI Connection Active</span>
             </div>
             <div className="flex items-center gap-6 opacity-40">
               <div className="h-px w-20 bg-gradient-to-r from-transparent to-slate-500" />
@@ -376,7 +376,7 @@ function MeetingChatContent() {
 import { Suspense } from "react"
 export default function MeetingChatPage() {
   return (
-    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>}>
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-cyan-400" /></div>}>
       <MeetingChatContent />
     </Suspense>
   )

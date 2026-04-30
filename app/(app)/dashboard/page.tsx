@@ -5,6 +5,7 @@ import { UpcomingMeetings } from "@/components/dashboard/upcoming-meetings"
 import { RecentActivities } from "@/components/dashboard/recent-activities"
 import { QuickJoin } from "@/components/dashboard/quick-join"
 import { useState, useEffect } from "react"
+import { PremiumLoader } from "@/components/ui/premium-loader"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Zap, MonitorPlay, LayoutDashboard, Search, Filter, SlidersHorizontal, Calendar, ArrowRight, CalendarClock, History, Users, MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -107,6 +108,13 @@ export default function DashboardPage() {
     return await getScheduledMeetings()
   })
 
+  // Pre-fetch 50 items for MeetingSelector (Scrum/Chat) in background
+  useSWR(["meeting-history", 50, 0], async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return null
+    return await getMeetingHistory(50, 0)
+  })
+
   const scheduledMeetings = scheduledData?.meetings || []
 
   const handleEndAll = async () => {
@@ -187,6 +195,13 @@ export default function DashboardPage() {
   const meetingCount = data?.events?.length ?? 0
   const activityCount = activities.length
 
+  // Initial loading state for premium experience
+  const isInitialLoading = sessionsLoading || statsLoading || isJobsLoading
+
+  if (isInitialLoading) {
+    return <PremiumLoader message="Initializing Dashboard" subtext="Syncing Meeting Intelligence" />
+  }
+
   return (
     <div className="flex flex-col gap-6 p-2 lg:p-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Welcome Banner: Sapphire Duo (Light & Dark) */}
@@ -202,7 +217,7 @@ export default function DashboardPage() {
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-cyan-500 animate-pulse" />
           </div>
           <h1 className="text-3xl font-black text-[#1E293B] dark:text-white tracking-tight">Welcome, {userName}</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium max-w-md">Your AI intelligence layer is synchronized and ready.</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium max-w-md">Your AI meeting assistant is ready.</p>
 
           <div className="flex items-center gap-4 mt-8">
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[#1E293B] dark:text-white font-bold text-xs backdrop-blur-sm shadow-sm dark:shadow-none">
@@ -237,7 +252,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-6 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
-              <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Live Intelligence Sessions</h2>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Active Meetings</h2>
               <div className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest border border-cyan-500/20">
                 {activeSessions.length} Active
               </div>
@@ -270,7 +285,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-1.5 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                        <span className="text-cyan-500 font-black text-[9px] tracking-tight">UPLINK ACTIVE</span>
+                        <span className="text-cyan-500 font-black text-[9px] tracking-tight">CONNECTED</span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-[10px] text-slate-500 font-bold">
@@ -324,13 +339,13 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="text-4xl font-black text-[#1E293B] dark:text-white">{historyLoading ? "—" : activityCount}</p>
-          <p className="text-xs text-slate-500 mt-2 font-bold tracking-tight">Records found in vault</p>
+          <p className="text-xs text-slate-500 mt-2 font-bold tracking-tight">Total meeting records</p>
         </div>
 
         <div className="bg-white dark:bg-gradient-to-br dark:from-[#0A0F1E] dark:to-[#161E31] rounded-[2rem] p-6 border-2 border-blue-500/10 dark:border-cyan-500/20 relative overflow-hidden group shadow-xl shadow-blue-500/5 dark:shadow-2xl">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 dark:bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center justify-between mb-4">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-cyan-500/70">Global Telemetry</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-cyan-500/70">Platform Stats</span>
             <Users className="size-5 text-blue-600 dark:text-cyan-400" />
           </div>
           <p className="text-4xl font-black text-[#1E293B] dark:text-white">{statsLoading ? "—" : stats?.unique_users || 0}</p>

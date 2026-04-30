@@ -490,7 +490,7 @@ function ScrumBoardContent() {
 
 export default function ScrumBoardPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-[#0f172a] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>}>
+        <Suspense fallback={<div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-cyan-400" /></div>}>
             <ScrumBoardContent />
         </Suspense>
     )

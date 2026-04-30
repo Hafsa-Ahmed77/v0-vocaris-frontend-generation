@@ -6,48 +6,47 @@ import { motion } from "framer-motion"
 
 export function SiteFooter() {
   return (
-    <footer className="relative border-t border-slate-200 dark:border-white/5 bg-white dark:bg-[#0f172a] overflow-hidden transition-colors duration-500">
-      {/* Subtle Background Accent */}
-      <div className="absolute inset-0 pointer-events-none opacity-40">
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/5 blur-[80px] rounded-full -translate-x-1/2 translate-y-1/2" />
-      </div>
-
-      <div className="mx-auto max-w-7xl px-6 relative z-10">
-        <div className="py-16 grid gap-12 md:grid-cols-3 items-center">
+    <footer className="relative border-t border-slate-200 dark:border-white/5 bg-transparent overflow-hidden transition-colors duration-500">
+      <div className="mx-auto max-w-full px-6 relative z-10">
+        <div className="py-20 grid gap-16 md:grid-cols-3 items-center">
           {/* Brand & Description */}
-          <div className="space-y-6">
-            <Link href="/" className="inline-block transition-transform hover:scale-105 active:scale-95">
-              <Logo />
+          <div className="space-y-8 text-center md:text-left">
+            <Link href="/" className="inline-block transition-all hover:scale-105 active:scale-95">
+              <Logo className="drop-shadow-[0_0_10px_rgba(59,130,246,0.2)]" />
             </Link>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-xs">
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-bold leading-relaxed max-w-xs mx-auto md:mx-0">
               Your intelligent meeting partner for seamless conversation and smart collaboration across your workflow.
             </p>
           </div>
 
-          {/* Navigation Links (Maintain original links only) */}
-          <nav className="flex justify-center md:justify-center gap-10">
-            <div className="flex flex-col gap-3">
-              <Link href="/about" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-widest text-[10px]">
+          {/* Navigation Links */}
+          <nav className="flex justify-center gap-16">
+            <div className="flex flex-col gap-4">
+              <Link href="/about" className="text-[10px] font-black text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 transition-all uppercase tracking-[0.3em] italic">
                 About
               </Link>
-              <Link href="/contact" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-widest text-[10px]">
+              <Link href="/contact" className="text-[10px] font-black text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 transition-all uppercase tracking-[0.3em] italic">
                 Contact
               </Link>
             </div>
-            <div className="flex flex-col gap-3">
-              <Link href="/privacy" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-widest text-[10px]">
+            <div className="flex flex-col gap-4">
+              <Link href="/privacy" className="text-[10px] font-black text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 transition-all uppercase tracking-[0.3em] italic">
                 Privacy
               </Link>
-              <Link href="/terms" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-widest text-[10px]">
+              <Link href="/terms" className="text-[10px] font-black text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 transition-all uppercase tracking-[0.3em] italic">
                 Terms
               </Link>
             </div>
           </nav>
 
           {/* Copyright Section */}
-          <div className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] md:text-right">
-            <p>© {new Date().getFullYear()} Vocaris Inc.</p>
-            <p className="mt-1 opacity-60">All rights reserved.</p>
+          <div className="text-center md:text-right space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-slate-500">
+              © {new Date().getFullYear()} Vocaris Inc.
+            </p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400/60 dark:text-slate-500/40">
+              All rights reserved.
+            </p>
           </div>
         </div>
       </div>

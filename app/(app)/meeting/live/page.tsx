@@ -290,7 +290,7 @@ export default function MeetingLivePage() {
                 {!resultsReady && (
                   <div className="flex flex-col items-center gap-4 py-6">
                     <div className="relative">
-                      <Loader2 className="w-7 h-7 text-blue-500 animate-spin" />
+                      <Loader2 className="w-7 h-7 text-blue-600 dark:text-cyan-400 animate-spin" />
                       <div className="absolute inset-0 blur-lg bg-blue-500/30 animate-pulse" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] animate-pulse">Processing Results...</p>

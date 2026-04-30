@@ -42,7 +42,7 @@ import {
 } from "@/lib/api"
 
 type Transcript = { speaker: "user" | "agent"; text: string; message_id?: string }
-type Job = { job_id: string; company_name: string; role: string; description?: string; last_session_id?: string }
+type Job = { job_id: string; company_name: string; role: string; last_session_id?: string }
 
 export default function OnboardingConversation() {
   const router = useRouter()
@@ -74,7 +74,7 @@ export default function OnboardingConversation() {
   const [jobsLoading, setJobsLoading] = useState(true)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [showNewJobForm, setShowNewJobForm] = useState(false)
-  const [newJobForm, setNewJobForm] = useState({ company_name: "", role: "", description: "" })
+  const [newJobForm, setNewJobForm] = useState({ company_name: "", role: "" })
   const [creatingJob, setCreatingJob] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
@@ -195,7 +195,6 @@ export default function OnboardingConversation() {
       const created: any = await createJob({
         company_name: newJobForm.company_name.trim(),
         role: newJobForm.role.trim(),
-        description: newJobForm.description.trim() || undefined,
       })
       console.log("[JobCreate] Response:", created)
 
@@ -221,7 +220,7 @@ export default function OnboardingConversation() {
         console.log("[JobCreate] Selecting job:", newJob)
         setSelectedJob(newJob)
         setShowNewJobForm(false)
-        setNewJobForm({ company_name: "", role: "", description: "" })
+        setNewJobForm({ company_name: "", role: "" })
       } else {
         console.warn("[JobCreate] No job found to select")
       }
@@ -290,6 +289,7 @@ export default function OnboardingConversation() {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
     }
   }, [transcripts])
+
 
 
   useEffect(() => {
@@ -572,6 +572,15 @@ export default function OnboardingConversation() {
     }
   }
 
+  // Auto-start session if requested via URL
+  useEffect(() => {
+    const autoStart = searchParams.get("auto_start") === "true"
+    if (autoStart && selectedJob && status === "disconnected" && transcripts.length === 0) {
+      console.log("[Onboarding] 🚀 Auto-starting session as requested...")
+      startMeeting()
+    }
+  }, [selectedJob, status, transcripts.length, searchParams])
+
   const endMeeting = async (manual = false) => {
     console.log(`[Onboarding] endMeeting called. Manual: ${manual}, SessionID: ${botIdRef.current}, Status: ${status}`)
     
@@ -672,7 +681,7 @@ export default function OnboardingConversation() {
           <div className="hidden md:flex flex-col">
             <div className="flex items-center gap-2">
               <Zap className={cn("w-3.5 h-3.5 fill-current", themeClasses.text)} />
-              <span className="text-xs font-black uppercase tracking-[0.2em]">Neural Uplink</span>
+              <span className="text-xs font-black uppercase tracking-[0.2em]">Voice Connection</span>
             </div>
             <span className={cn(
               "text-[10px] uppercase font-bold tracking-widest mt-0.5",
@@ -757,18 +766,18 @@ export default function OnboardingConversation() {
                 <div className={cn("flex items-center justify-center gap-3 mb-2", isInterrupted ? "text-red-500" : themeClasses.text)}>
                   {isInterrupted ? <Zap className="w-4 h-4 animate-pulse" /> : <ShieldCheck className="w-4 h-4" />}
                   <span className="text-[10px] font-black uppercase tracking-[0.4em]">
-                    {isInterrupted ? "Uplink Terminated Prematurely" : selectedJob ? `${selectedJob.role} @ ${selectedJob.company_name}` : "Neural Profile Sync"}
+                    {isInterrupted ? "Connection Interrupted" : selectedJob ? `${selectedJob.role} @ ${selectedJob.company_name}` : "Voice Profile Setup"}
                   </span>
                 </div>
                 <h1 className="text-4xl md:text-7xl font-black tracking-tighter leading-none uppercase">
-                  {isInterrupted ? "Connection \n Interrupted" : "Voice Identity \n Extraction"}
+                  {isInterrupted ? "Connection \n Interrupted" : "Voice Profile \n Setup"}
                 </h1>
                 <p className={cn(
                   "font-bold uppercase tracking-widest text-[10px] opacity-60",
                   isDarkMode ? "text-slate-400" : "text-slate-600"
                 )}>
                   {isInterrupted
-                    ? `The connection was lost with ${timeLeft}s remaining. Please re-establish the uplink.`
+                    ? `The connection was lost with ${timeLeft}s remaining. Please restart the setup.`
                     : selectedJob
                       ? `Vocaris AI will onboard you as ${selectedJob.role} at ${selectedJob.company_name}.`
                       : "Select a job below so the AI knows your onboarding context."}
@@ -788,7 +797,7 @@ export default function OnboardingConversation() {
 
                       <div className={cn("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest", themeClasses.textLight)}>
                         <Briefcase className="w-3.5 h-3.5" />
-                        <span>Select Job for Onboarding</span>
+                        <span>Select Role for Voice Setup</span>
                       </div>
 
                       {jobsLoading ? (
@@ -899,7 +908,7 @@ export default function OnboardingConversation() {
                       <Loader2 className="w-6 h-6 animate-spin" />
                     ) : (
                       <>
-                        {isInterrupted ? "RE-ESTABLISH UPLINK" : "ESTABLISH UPLINK"}
+                        {isInterrupted ? "RESTART VOICE SETUP" : "START VOICE SETUP"}
                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
@@ -910,7 +919,7 @@ export default function OnboardingConversation() {
                       onClick={resetSession}
                       className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white transition-colors"
                     >
-                      CANCEL AND START OVER
+                      START OVER
                     </button>
                   )}
                 </div>
@@ -938,7 +947,7 @@ export default function OnboardingConversation() {
 
                   <div className="space-y-4">
                     <div className={cn("flex justify-between text-[10px] font-black uppercase tracking-widest", themeClasses.textLight)}>
-                      <span>Neural Extraction Progress</span>
+                      <span>Voice Setup Progress</span>
                       <span>{mappingProgress}%</span>
                     </div>
                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -948,7 +957,7 @@ export default function OnboardingConversation() {
                       />
                     </div>
                     <div className="flex justify-between items-center pt-1">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Identity Extraction</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Voice Profile Setup</span>
                       <div
                         className={cn("flex items-center gap-1.5 cursor-pointer", themeClasses.textLight)}
                         onClick={() => { if (status === "connected") endMeeting() }}
@@ -981,7 +990,7 @@ export default function OnboardingConversation() {
 
                   <div className="mt-8 text-center space-y-2">
                     <span className={cn("text-[10px] font-black uppercase tracking-[0.4em] animate-pulse", themeClasses.text)}>
-                      {isRecording ? "Listening..." : agentSpeaking ? "Agent Speaking..." : "Uplink Standby"}
+                      {isRecording ? "Listening..." : agentSpeaking ? "Assistant Speaking..." : "Connection Ready"}
                     </span>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 opacity-50">
                       Capturing high-fidelity voice metrics
@@ -1006,10 +1015,10 @@ export default function OnboardingConversation() {
                   >
                     <div className="flex items-center gap-4">
                       {isRecording ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
-                      {(status === "disconnected" && transcripts.length > 0) ? "SESSION COMPLETED" : (timeLeft === 0 && status !== "connected") ? "SESSION ENDED" : isRecording ? "MUTE" : "TALK NOW"}
+                      {(status === "disconnected" && transcripts.length > 0) ? "SETUP COMPLETE" : (timeLeft === 0 && status !== "connected") ? "SETUP ENDED" : isRecording ? "MUTE" : "START TALKING"}
                     </div>
                     <span className="text-[8px] font-black tracking-[0.3em] uppercase opacity-70">
-                      {(status === "disconnected" && transcripts.length > 0) ? "Neural profile synchronized" : (timeLeft === 0 && status !== "connected") ? "Neural profile locked" : "Push to Command"}
+                      {(status === "disconnected" && transcripts.length > 0) ? "Voice profile complete" : (timeLeft === 0 && status !== "connected") ? "Voice profile locked" : "Tap to Speak"}
                     </span>
                   </Button>
 
@@ -1021,7 +1030,7 @@ export default function OnboardingConversation() {
                     }}
                     className="w-full py-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-red-400 transition-colors"
                   >
-                    TERMINATE UPLINK
+                    TERMINATE SETUP
                   </button>
                 </div>
               </div>
@@ -1037,7 +1046,7 @@ export default function OnboardingConversation() {
                           <Cpu className="w-12 h-12 text-purple-400 animate-spin relative z-10" />
                         </div>
                         <div className="text-center space-y-2">
-                          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-400">Neural Sync in Progress</p>
+                          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-400">Processing Voice...</p>
                           <p className="text-slate-500 text-[8px] uppercase font-bold tracking-widest">Compiling voice identity extraction results...</p>
                         </div>
                       </div>
@@ -1201,11 +1210,11 @@ export default function OnboardingConversation() {
                 )}
               </div>
               <h2 className="text-xs md:text-2xl font-black text-white uppercase tracking-tight">
-                {isSyncing ? "Neural Sync..." : transcripts.length > 0 ? "Review & Finalize" : "Awaiting Data..."}
+                {isSyncing ? "Saving Profile..." : transcripts.length > 0 ? "Review & Finish" : "Awaiting Data..."}
               </h2>
               <p className="text-[8px] md:text-sm text-slate-400 font-medium leading-relaxed">
                 {isSyncing 
-                  ? "Extracting voice data. Takes 30-60s."
+                  ? "Saving your voice profile. Please wait."
                   : transcripts.length > 0 
                     ? "Extraction successful. Review and correct any terms." 
                     : "Processing data. Try Force Resync if needed."}

@@ -12,10 +12,11 @@ import {
     Sparkles,
     CheckCircle2
 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { getMeetingHistory } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow, format } from "date-fns"
+import { useRouter } from "next/navigation"
+import useSWR from "swr"
+import { getMeetingHistory } from "@/lib/api"
 
 interface MeetingSelectorProps {
     type: "chat" | "scrum"
@@ -24,40 +25,32 @@ interface MeetingSelectorProps {
 
 export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
     const router = useRouter()
-    const [meetings, setMeetings] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
 
-    useEffect(() => {
-        const fetchHistory = async () => {
-            try {
-                setLoading(true)
-                const data = await getMeetingHistory(50, 0)
-                const rawMeetings = data?.meetings || []
-                
-                // Intelligent Filtering
-                const filtered = rawMeetings.filter((m: any) => {
-                    const isScrum = m.is_scrum === true || 
-                                    m.is_scrum === "true" || 
-                                    Number(m.is_scrum) === 1 || 
-                                    m.scrum_mode === true || 
-                                    m.is_scrum_mode === true || 
-                                    m.meeting_title?.toLowerCase().includes("scrum");
-                    
-                    return type === "scrum" ? isScrum : !isScrum;
-                })
-
-                setMeetings(filtered)
-            } catch (err) {
-                console.error("Failed to fetch history:", err)
-            } finally {
-                setLoading(false)
-            }
+    const { data: historyData, isLoading: loading } = useSWR(
+        ["meeting-history", 50, 0],
+        async () => {
+            const token = localStorage.getItem("token")
+            if (!token) return null
+            return await getMeetingHistory(50, 0)
         }
-        fetchHistory()
-    }, [type])
+    )
 
-    const filteredMeetings = meetings.filter(m => 
+    const rawMeetings = historyData?.meetings || []
+    
+    // Intelligent Filtering
+    const meetings = rawMeetings.filter((m: any) => {
+        const isScrum = m.is_scrum === true || 
+                        m.is_scrum === "true" || 
+                        Number(m.is_scrum) === 1 || 
+                        m.scrum_mode === true || 
+                        m.is_scrum_mode === true || 
+                        m.meeting_title?.toLowerCase().includes("scrum");
+        
+        return type === "scrum" ? isScrum : !isScrum;
+    })
+
+    const filteredMeetings = meetings.filter((m: any) => 
         (m.meeting_title || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
 
@@ -74,8 +67,8 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
                     <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-blue-500 dark:text-cyan-500 animate-bounce" />
                 </div>
                 <div className="text-center space-y-2 relative z-10">
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-blue-600 dark:text-cyan-500">Neural Sync Active</p>
-                    <h2 className="text-lg font-bold text-slate-400 dark:text-slate-500">Scanning Intelligence Archives...</h2>
+                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-blue-600 dark:text-cyan-500">AI Active</p>
+                    <h2 className="text-lg font-bold text-slate-400 dark:text-slate-500">Scanning Meeting History...</h2>
                 </div>
             </div>
         )
@@ -94,13 +87,13 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
                 <div className="space-y-3">
                     <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">No {type === "scrum" ? "Scrum" : "Past"} Meetings</h2>
                     <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px] max-w-[280px] mx-auto leading-loose pb-4">
-                        Your neural history is empty. Start a new session to begin intelligence analysis.
+                        Your meeting history is empty. Start a new session to begin.
                     </p>
                     <button
                         onClick={() => router.push("/dashboard")}
                         className="bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-12 px-8 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-all hover:scale-105 active:scale-95 mx-auto flex items-center gap-2"
                     >
-                        Return to Command Center
+                        Return to Dashboard
                     </button>
                 </div>
             </motion.div>
@@ -124,9 +117,9 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
                             )}>Frame Selection</p>
                         </div>
                         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
-                            {type === "chat" ? "Intelligence Archives" : "Scrum History"}
+                            {type === "chat" ? "Meeting History" : "Scrum History"}
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 font-bold text-xs">Browse and reconstruct meeting context from neural records.</p>
+                        <p className="text-slate-500 dark:text-slate-400 font-bold text-xs">Browse insights and summaries from your meeting records.</p>
                     </div>
                     {type === "scrum" ? (
                         <div className="hidden sm:block p-4 bg-violet-500/10 rounded-2xl border border-violet-500/20 text-violet-500 shadow-xl shadow-violet-500/5">
@@ -143,7 +136,7 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" />
                     <input
                         type="text"
-                        placeholder="Search archives by title"
+                        placeholder="Search meetings by title"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full h-14 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pl-14 pr-6 text-sm font-bold placeholder:text-slate-400 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all shadow-sm"
@@ -153,7 +146,7 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
 
             <div className="grid grid-cols-1 gap-4">
                 <AnimatePresence mode="popLayout">
-                    {filteredMeetings.map((meeting, idx) => (
+                    {filteredMeetings.map((meeting: any, idx: number) => (
                         <motion.div
                             key={meeting.bot_id || idx}
                             initial={{ opacity: 0, y: 10 }}
@@ -182,7 +175,7 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
                                     <div className="space-y-1 flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <h3 className="text-base sm:text-lg font-black text-slate-800 dark:text-white tracking-tight truncate leading-tight group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
-                                                {meeting.meeting_title || "Untitled Intelligence Record"}
+                                                {meeting.meeting_title || "Untitled Meeting"}
                                             </h3>
                                             <div className={cn(
                                                 "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border shrink-0",

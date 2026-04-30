@@ -83,13 +83,13 @@ export default function OnboardingSelectionPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         className="px-4 py-1 rounded-full border border-blue-500/20 bg-blue-500/5 backdrop-blur-md"
                     >
-                        <span className="text-[9px] font-black tracking-[0.3em] text-blue-500 uppercase">Core Extraction</span>
+                        <span className="text-[9px] font-black tracking-[0.3em] text-blue-500 uppercase">Profile Setup</span>
                     </motion.div>
  
                     <div className="space-y-2">
                         <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9]">
-                            Neural Sync <br />
-                            <span className="text-blue-600 dark:text-blue-400">Baseline</span>
+                            Voice Profile <br />
+                            <span className="text-blue-600 dark:text-blue-400">Setup</span>
                         </h1>
                         <p className={cn(
                             "text-xs md:text-sm font-bold uppercase tracking-widest max-w-lg mx-auto",
@@ -104,10 +104,10 @@ export default function OnboardingSelectionPage() {
                 <div className="flex justify-center">
                     <div className="w-full max-w-md">
                         <SelectionCard
-                            title="AI Voice Uplink"
-                            desc="Talk for 1-2 minutes. Our AI will extract your career profile and goals automatically via neural sync."
+                            title="Voice Connection"
+                            desc="Talk for 1-2 minutes. Our AI will setup your career profile and goals automatically via voice analysis."
                             icon={<AudioLines className="w-8 h-8" />}
-                            tags={["Required", "Neural Sync"]}
+                            tags={["Required", "Voice Setup"]}
                             isSelected={selectedMode === 'voice'}
                             onClick={() => {
                                 setSelectedMode('voice')

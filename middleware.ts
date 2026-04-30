@@ -48,9 +48,15 @@ export function middleware(req: NextRequest) {
   // B. Protect-by-Default Guard: Redirect unauthenticated users to /auth
   // Bypass for the auth pages themselves and public APIs
   if (!token && !isPublicPath && !isPublicApi) {
+    // If it's an API request, return 401 instead of redirecting to HTML login page
+    if (pathname.startsWith("/api")) {
+      return new NextResponse(
+        JSON.stringify({ error: "Unauthorized", message: "Please login again." }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const loginUrl = new URL("/auth", req.url);
-    // Optional: save the intended destination for sub-sequent redirect
-    // loginUrl.searchParams.set("redirect", pathname); 
     return NextResponse.redirect(loginUrl);
   }
 

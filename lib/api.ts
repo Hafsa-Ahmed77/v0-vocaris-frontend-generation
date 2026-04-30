@@ -59,7 +59,17 @@ export async function apiFetch(
     throw new Error(errorText || "API request failed")
   }
 
-  return res.json()
+  const contentType = res.headers.get("content-type")
+  if (contentType && contentType.includes("application/json")) {
+    return res.json()
+  }
+
+  const text = await res.text()
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text
+  }
 }
 
 /**

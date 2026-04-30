@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
-import { Zap, Link as LinkIcon, Play, Briefcase, ChevronDown, ShieldAlert } from "lucide-react"
+import { Zap, Link as LinkIcon, Play, Briefcase, ChevronDown, ShieldAlert, CheckCircle2, Loader2, X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +29,7 @@ export function QuickJoin({ onStartAgent, isLoading, isJobsLoading, jobs = [] }:
     const [shake, setShake] = useState(false)
     const [isScrum, setIsScrum] = useState(false)
     const [selectedJobId, setSelectedJobId] = useState<string>("")
+    const [showSuccess, setShowSuccess] = useState(false)
 
     const onboardedJobs = jobs?.filter(job => job.last_session_id) || []
     const hasJobsTotal = jobs?.length > 0
@@ -66,13 +67,15 @@ export function QuickJoin({ onStartAgent, isLoading, isJobsLoading, jobs = [] }:
         }
 
         if (!selectedHasOnboarding) {
-            setLocalError("Please select a sync-ready Neural Profile.")
+            setLocalError("Please select a ready Voice Profile.")
             triggerShake()
             return
         }
 
         try {
             await onStartAgent(url.trim(), isScrum, selectedJobId || onboardedJobs[0]?.job_id)
+            setShowSuccess(true)
+            // Navigation happens in parent handleStartAgent, but we show success here first
         } catch (err: any) {
             setLocalError(err.message || "Failed to start agent. Please try again.")
             triggerShake()
@@ -135,7 +138,7 @@ export function QuickJoin({ onStartAgent, isLoading, isJobsLoading, jobs = [] }:
                 ) : hasJobsTotal ? (
                     <div className="mb-4 relative animate-in fade-in slide-in-from-top-2 duration-500">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 block px-1">
-                            Neural Context Required
+                            Voice Profile Required
                         </label>
 
                         <Select value={selectedJobId} onValueChange={setSelectedJobId}>
@@ -161,7 +164,7 @@ export function QuickJoin({ onStartAgent, isLoading, isJobsLoading, jobs = [] }:
                         <div className="flex flex-col gap-1">
                             <span className="text-sm font-bold">Action Restricted</span>
                             <span className="text-xs opacity-90 leading-relaxed">
-                                You must create at least one Neural Sync session for a job before deploying an agent to real meetings.
+                                You must create at least one Voice Profile for a job before deploying an agent to real meetings.
                             </span>
                             <Link href="/onboarding-jobs" className="text-xs font-black uppercase tracking-widest mt-1 hover:underline">
                                 Go to Job Manager &rarr;
@@ -218,6 +221,42 @@ export function QuickJoin({ onStartAgent, isLoading, isJobsLoading, jobs = [] }:
                     </motion.div>
                 )}
             </div>
+
+            {/* Success Modal Overlay */}
+            <AnimatePresence>
+                {showSuccess && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            className="w-full max-w-sm bg-white dark:bg-[#161E31] border border-emerald-500/20 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden text-center"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                            
+                            <div className="size-20 bg-emerald-500/10 rounded-[2rem] border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+                                <CheckCircle2 className="size-10 text-emerald-500" />
+                            </div>
+
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">
+                                Agent Deployed
+                            </h3>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                                Voice connection established. Your intelligent agent is joining the meeting.
+                            </p>
+
+                            <div className="flex items-center justify-center gap-3 py-3 px-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10">
+                                <Loader2 className="size-4 text-emerald-500 animate-spin" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Redirecting to Live Feed...</span>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

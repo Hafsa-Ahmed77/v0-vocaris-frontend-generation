@@ -18,6 +18,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const [authorized, setAuthorized] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+
+  // Load sidebar collapse preference
+  useEffect(() => {
+    const collapsed = localStorage.getItem("sidebarCollapsed") === "true"
+    setIsSidebarCollapsed(collapsed)
+  }, [])
+
+  const toggleSidebarCollapse = () => {
+    const newState = !isSidebarCollapsed
+    setIsSidebarCollapsed(newState)
+    localStorage.setItem("sidebarCollapsed", String(newState))
+  }
 
   useEffect(() => {
     // 1. Initial verification & status fetch
@@ -53,7 +66,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   // Determine current page title
   const pageTitle = pathname === "/dashboard" ? "Dashboard" :
-    pathname === "/onboarding-jobs" ? "Job Manager" :
+    pathname === "/onboarding-jobs" ? "Voice Profiles" :
       pathname === "/meeting/live" ? "Live Session" :
         pathname === "/meeting/scrum" ? "Scrum Analysis" :
           pathname === "/meeting/chat" ? "Meeting Chat" :
@@ -80,13 +93,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         />
       )}
 
-      <div className="grid min-h-dvh lg:grid-cols-[280px_1fr]">
+      <div className={cn(
+        "grid min-h-dvh transition-all duration-300 ease-in-out",
+        isSidebarCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[280px_1fr]"
+      )}>
         {/* Sidebar container with mobile drawer support */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-[60] w-[280px] transform border-r transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:block lg:translate-x-0 bg-[#0f172a]",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-[60] transform transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:block lg:translate-x-0",
+          isSidebarCollapsed ? "lg:w-[80px]" : "lg:w-[280px]",
+          isSidebarOpen ? "translate-x-0 w-[280px]" : "-translate-x-full w-[280px]"
         )}>
-          <Sidebar onClose={() => setIsSidebarOpen(false)} isMobile={true} />
+          <Sidebar 
+            onClose={() => setIsSidebarOpen(false)} 
+            isMobile={true} 
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={toggleSidebarCollapse}
+          />
         </aside>
 
         <div className="flex min-w-0 flex-col">
