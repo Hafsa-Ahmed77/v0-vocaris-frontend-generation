@@ -1,15 +1,13 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { motion } from "framer-motion"
-import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
 import { PremiumLoader } from "@/components/ui/premium-loader"
-import { SiteHeader } from "@/components/site-header"
-import { ShieldCheck, Zap, MessageSquare, BarChart3, ArrowRight, CheckCircle, Clock } from "lucide-react"
+import { ShieldCheck, Zap, BarChart3, ArrowRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
 import { verifyToken } from "@/lib/api"
 import { setAuthCookie } from "@/lib/auth-cookies"
 
@@ -19,7 +17,10 @@ export default function AuthPage() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    // If user already has a valid token, skip login page entirely
+    document.documentElement.classList.remove("dark")
+  }, [])
+
+  useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) {
       setMounted(true)
@@ -27,13 +28,11 @@ export default function AuthPage() {
       return
     }
 
-    // Validate existing token — if valid, redirect to onboarding selection
     verifyToken().then((valid) => {
       if (valid) {
         setAuthCookie(token)
         router.replace("/dashboard")
       } else {
-        // Token is stale — clear it and show login
         localStorage.removeItem("token")
         localStorage.removeItem("user")
         setMounted(true)
@@ -42,167 +41,179 @@ export default function AuthPage() {
     })
   }, [router])
 
-  // Show nothing while checking token — avoids flash of login UI
   if (checking || !mounted) {
     return <PremiumLoader message="Initializing Dashboard" subtext="Authenticating Workspace" />
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white overflow-hidden relative selection:bg-blue-500/30 font-sans">
+    <div className="min-h-screen lg:h-screen bg-[#f8faff] text-slate-900 overflow-x-hidden relative selection:bg-blue-500/30 font-sans flex flex-col items-center justify-center p-4 sm:p-6 lg:p-0">
 
-      {/* Background Ambience - Lighter System */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse delay-700" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(15,23,42,1)_0%,rgba(2,6,23,1)_100%)] opacity-80" />
-      </div>
+      <main className="relative z-10 flex w-full h-full items-center justify-center max-w-[1400px]">
+        
+        {/* Decorative Background Element */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden sm:block">
+          <div className="absolute top-1/4 -right-20 w-[300px] h-[300px] sm:w-[600px] sm:h-[600px] bg-blue-100/40 rounded-full blur-[80px] sm:blur-[120px]" />
+          <div className="absolute -bottom-20 -left-20 w-[300px] h-[300px] sm:w-[600px] sm:h-[600px] bg-blue-50/40 rounded-full blur-[80px] sm:blur-[120px]" />
+        </div>
 
-      {/* Header */}
-      <div className="relative z-50">
-        <SiteHeader />
-      </div>
-
-      <main className="relative z-10 flex min-h-[calc(100vh-64px)] flex-col lg:flex-row">
-
-        {/* Left Section: Auth Interface */}
-        <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 sm:p-12 xl:p-24">
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-sm"
-          >
-            <div className="text-center lg:text-left mb-10 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 mb-4 mx-auto lg:mx-0">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Enterprise Grade Security</span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-none bg-gradient-to-br from-white via-white to-slate-500 bg-clip-text text-transparent">
+        <div className="relative z-10 w-full grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          
+          {/* Left Section: Auth Interface */}
+          <div className="flex flex-col items-center lg:items-start space-y-6 lg:space-y-8 order-2 lg:order-1">
+            <div className="space-y-4 text-center lg:text-left">
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-light tracking-tight text-slate-900 leading-[1.1]">
                 The Core of <br />
-                Intelligence.
+                <span className="font-medium">Intelligence.</span>
               </h1>
-              <p className="text-slate-400 font-medium text-lg max-w-xs mx-auto lg:mx-0">
-                Sign in to your intelligent meeting architect.
+              <p className="text-slate-400 font-medium text-base sm:text-lg max-w-[280px] sm:max-w-sm mx-auto lg:mx-0">
+                Connect your account to the intelligent meeting architect and synchronize your workflows.
               </p>
             </div>
 
-            <div className="relative group">
-              {/* Subtle Gradient Glow */}
-              <div className="absolute -inset-0.5 rounded-[2rem] bg-gradient-to-br from-blue-500/20 via-transparent to-indigo-500/20 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+            <Card className="w-full max-w-[360px] sm:max-w-sm border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[1.5rem] bg-white p-6 sm:p-10">
+              <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
+                <div className="space-y-2">
+                  <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 tracking-tight">Access Portal</h2>
+                  <p className="text-slate-400 text-xs sm:text-sm">Synchronize with your workspace.</p>
+                </div>
 
-              <Card className="relative border border-white/5 bg-slate-900/40 backdrop-blur-3xl shadow-2xl rounded-[1.9rem] overflow-hidden">
-                <CardHeader className="pt-10 pb-4 px-8">
-                  <CardTitle className="text-2xl font-black text-white tracking-tight">
-                    Welcome back
-                  </CardTitle>
-                  <CardDescription className="text-slate-400 font-medium">
-                    Authenticate to enter your workspace securely.
-                  </CardDescription>
-                </CardHeader>
+                <div className="space-y-4 sm:space-y-6">
+                  <button className="w-full h-16 sm:h-20 border border-slate-100 rounded-xl flex items-center justify-center gap-3 sm:gap-4 hover:bg-slate-50 transition-all group bg-white shadow-sm ring-1 ring-slate-100/50">
+                    <img src="https://www.google.com/favicon.ico" className="size-5 sm:size-6 grayscale group-hover:grayscale-0 transition-all" alt="Google" />
+                    <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">Google Workspace Sync</span>
+                  </button>
 
-                <CardContent className="space-y-8 pb-12 px-8">
-                  <GoogleSignInButton className="w-full h-14 bg-white text-slate-950 hover:bg-slate-100 transition-all duration-300 font-black rounded-2xl shadow-xl shadow-black/20 flex items-center justify-center gap-3 border-none text-[11px] uppercase tracking-[0.1em]" />
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="size-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]" />
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Enterprise Protocol Secure</span>
+                  </div>
+                </div>
 
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-white/5" />
+                <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed">
+                  By connecting, you agree to our <a href="#" className="text-blue-600 font-bold hover:underline">Terms</a> and <a href="#" className="text-blue-600 font-bold hover:underline">Privacy Pact</a>.
+                </p>
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Section: Visual elements */}
+          <div className="flex flex-col items-center justify-center relative scale-[0.7] sm:scale-[0.85] lg:scale-95 xxl:scale-100 order-1 lg:order-2 h-[350px] sm:h-[450px] lg:h-auto overflow-visible">
+            
+            {/* Protocol Architecture Mesh */}
+            <div className="hidden lg:block absolute inset-0 border border-blue-50/50 rounded-[2rem] -top-12 -bottom-12 -left-8 -right-8 z-0 pointer-events-none" />
+            
+            <div className="relative z-10 w-full flex flex-col items-center gap-8 lg:gap-12">
+              
+              <div className="relative h-[300px] sm:h-[400px] lg:h-[500px] w-full max-w-[500px]">
+                {/* Real-Time Data Card */}
+                <motion.div 
+                  initial={{ opacity: 1, y: 0 }}
+                  animate={{ y: [0, -12, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -top-4 -left-4 sm:top-0 sm:left-0 p-4 sm:p-6 bg-white border border-slate-100 rounded-[1.2rem] sm:rounded-[1.5rem] shadow-xl w-48 sm:w-60 space-y-3 sm:space-y-4 z-20"
+                >
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="size-5 sm:size-6 bg-blue-50 flex items-center justify-center rounded">
+                      <BarChart3 className="size-2.5 sm:size-3 text-blue-600" />
                     </div>
-                    <div className="relative flex justify-center text-[9px] uppercase tracking-[0.3em] font-black">
-                      <span className="bg-slate-900/80 px-4 text-slate-500">Secure Protocol</span>
+                    <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-blue-600">Real-Time Data</span>
+                  </div>
+                  <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold leading-relaxed truncate-3-lines">Metrics extracted from meeting stream in 4.2ms.</p>
+                </motion.div>
+
+                {/* AI Synthesis Card */}
+                <motion.div 
+                   initial={{ opacity: 1, y: 0 }}
+                   animate={{ y: [0, 15, 0] }}
+                   transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute bottom-0 -right-4 sm:bottom-4 sm:right-0 p-4 sm:p-6 bg-white border border-slate-100 rounded-[1.2rem] sm:rounded-[1.5rem] shadow-xl w-48 sm:w-60 space-y-3 sm:space-y-4 z-20"
+                >
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="size-5 sm:size-6 bg-blue-50 flex items-center justify-center rounded">
+                      <Zap className="size-2.5 sm:size-3 text-blue-600" />
+                    </div>
+                    <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-blue-600">AI Synthesis</span>
+                  </div>
+                  <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold leading-relaxed truncate-3-lines">Context, tone, and action items analyzed.</p>
+                </motion.div>
+
+                {/* Cognitive Sync Card */}
+                <motion.div 
+                   initial={{ opacity: 0.8 }}
+                   animate={{ x: [0, 10, 0] }}
+                   transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-2 -right-8 sm:top-4 sm:-right-12 p-4 sm:p-5 bg-white border border-slate-100 rounded-xl shadow-lg w-40 sm:w-52 space-y-2 sm:space-y-3 z-10"
+                >
+                  <div className="flex items-center gap-2 sm:gap-3">
+                     <div className="size-1.5 sm:size-2 bg-indigo-500 rounded-full animate-pulse" />
+                     <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">Cognitive Sync</span>
+                  </div>
+                  <div className="flex gap-1">
+                     {[1,2,3,4,5].map(i => <div key={i} className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 w-1/2" /></div>)}
+                  </div>
+                </motion.div>
+
+                {/* Behavioral Mapping */}
+                <motion.div 
+                   initial={{ opacity: 0.8 }}
+                   animate={{ y: [0, -8, 0], x: [0, -5, 0] }}
+                   transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -bottom-8 -left-8 sm:-bottom-12 sm:-left-4 p-4 sm:p-5 bg-white border border-slate-100 rounded-xl shadow-lg w-40 sm:w-52 space-y-2 sm:space-y-3 z-10"
+                >
+                  <div className="flex items-center gap-2 sm:gap-3">
+                     <div className="size-4 sm:size-5 bg-emerald-50 flex items-center justify-center rounded">
+                        <ShieldCheck className="size-2 sm:size-2.5 text-emerald-600" />
+                     </div>
+                     <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400">Behavioral Map</span>
+                  </div>
+                  <div className="h-1 sm:h-1.5 w-full bg-emerald-50 rounded-full overflow-hidden">
+                     <div className="h-full w-[85%] bg-emerald-500" />
+                  </div>
+                </motion.div>
+
+                {/* Auto-Manifest Card */}
+                <motion.div 
+                  initial={{ opacity: 1, scale: 1 }}
+                  animate={{ scale: [1, 1.01, 1], y: [0, -5, 0] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 sm:w-80 bg-[#1e293b] rounded-[1.2rem] sm:rounded-[1.5rem] p-6 sm:p-8 shadow-2xl z-30"
+                >
+                  <div className="flex items-center justify-between mb-4 sm:mb-8">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Zap className="size-3 sm:size-4 text-blue-400" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white">Auto-Manifest</span>
+                    </div>
+                    <Badge className="bg-[#10b981]/10 text-[#10b981] border-none text-[8px] font-black px-2 py-0.5">ACTIVE</Badge>
+                  </div>
+                  
+                  <div className="space-y-4 mb-4 sm:mb-8">
+                    <div className="flex flex-col gap-2">
+                       <div className="flex items-center gap-2">
+                          <div className="size-4 border border-blue-500 rounded-full flex items-center justify-center">
+                             <div className="size-1.5 bg-blue-500 rounded-full" />
+                          </div>
+                          <div className="h-3 w-3/4 bg-blue-500/10 rounded-full overflow-hidden">
+                             <div className="h-full w-2/3 bg-blue-600 rounded-full" />
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <div className="size-4 border border-slate-700 rounded-full" />
+                          <div className="h-3 w-1/2 bg-slate-700/30 rounded-full overflow-hidden">
+                             <div className="h-full w-1/4 bg-blue-500/20 rounded-full" />
+                          </div>
+                       </div>
                     </div>
                   </div>
 
-                  <p className="text-center text-[10px] text-slate-500 font-bold leading-relaxed max-w-[240px] mx-auto">
-                    By continuing, you agree to our
-                    <a href="#" className="text-white hover:text-blue-400 ml-1 transition-colors underline underline-offset-4 decoration-white/10">Terms</a> and
-                    <a href="#" className="text-white hover:text-blue-400 ml-1 transition-colors underline underline-offset-4 decoration-white/10">Privacy Pact</a>.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Right Section: Feature Showcase - Lighter & Balanced */}
-        <div className="hidden lg:flex flex-1 bg-slate-950/40 border-l border-white/5 items-center justify-center relative p-12 overflow-hidden">
-
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.03)_0%,transparent_70%)]" />
-
-          <div className="relative z-10 w-full max-w-xl flex flex-col items-center">
-            <div className="grid grid-cols-2 gap-8 relative w-full">
-
-              {/* Card 1 */}
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-xl shadow-2xl space-y-4"
-              >
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                  <BarChart3 className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black text-white uppercase tracking-wider mb-1">Real-time Data</h4>
-                  <p className="text-[10px] text-slate-400 leading-relaxed font-bold">Metrics extracted from live voice streams instantly.</p>
-                </div>
-              </motion.div>
-
-              {/* Card 2 */}
-              <motion.div
-                animate={{ y: [0, 10, 0] }}
-                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-xl shadow-2xl space-y-4 mt-12"
-              >
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                  <MessageSquare className="w-5 h-5 text-indigo-400" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black text-white uppercase tracking-wider mb-1">Semantic Intel</h4>
-                  <p className="text-[10px] text-slate-400 leading-relaxed font-bold">Deep understanding of context, tone, and strategic intent.</p>
-                </div>
-              </motion.div>
-
-              {/* Center Mockup - Auto Tasks */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8 }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 z-20"
-              >
-                <div className="p-8 rounded-[2.5rem] bg-slate-900 border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.1)] space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-blue-400 fill-blue-400" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Auto-Manifest</span>
-                    </div>
-                    <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-400 uppercase tracking-widest">Active</div>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <ArrowRight className="size-4" />
                   </div>
+                </motion.div>
+              </div>
 
-                  <div className="space-y-3">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
-                        <div className="w-4 h-4 rounded-md bg-blue-500 flex items-center justify-center">
-                          <CheckCircle className="w-3 h-3 text-white" />
-                        </div>
-                        <div className="h-2 w-24 bg-white/10 rounded-full" />
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pt-4 flex items-center justify-between border-t border-white/5">
-                    <div className="flex items-center gap-1.5 font-bold text-[9px] text-slate-500 uppercase">
-                      <Clock className="w-3 h-3" /> Updated 2s ago
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-blue-400" />
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Tagline */}
-            <div className="mt-48 text-center max-w-sm space-y-4">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mb-2">Protocol Architecture v4.2</p>
-              <h2 className="text-2xl font-black text-white italic tracking-tight">"The intelligence layer for high-performing teams."</h2>
+              <div className="text-center mt-8">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">Protocol Architecture v4.2</p>
+              </div>
             </div>
           </div>
         </div>
