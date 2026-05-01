@@ -1,13 +1,11 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
 
 interface LogoProps {
     className?: string
     iconOnly?: boolean
-    variant?: "default" | "white" | "gradient"
+    variant?: "default" | "white"
 }
 
 export function Logo({
@@ -15,65 +13,61 @@ export function Logo({
     iconOnly = false,
     variant = "default",
 }: LogoProps) {
-    const { resolvedTheme } = useTheme()
-    const [mounted, setMounted] = useState(false)
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
-
-    const isDark = mounted ? resolvedTheme === "dark" : true
-    const gradId = "vocaris-v-grad"
+    const gradId = "vocaris-v-grad-" + variant
 
     return (
-        <div className={cn("flex items-center gap-2 cursor-pointer group", className)}>
-            <svg
-                viewBox="0 0 200 175"
-                className="h-8 w-8 shrink-0"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <defs>
-                    {variant === "white" ? (
-                        <linearGradient id={gradId}>
-                            <stop stopColor="#FFFFFF" />
-                        </linearGradient>
-                    ) : isDark ? (
-                        /* Dark mode: cyan → indigo (matches app accent palette) */
-                        <linearGradient id={gradId} x1="0" y1="0" x2="200" y2="175" gradientUnits="userSpaceOnUse">
-                            <stop stopColor="#22D3EE" />
-                            <stop offset="1" stopColor="#818CF8" />
-                        </linearGradient>
-                    ) : (
-                        /* Light mode: indigo-900 → blue-800 */
-                        <linearGradient id={gradId} x1="0" y1="0" x2="200" y2="175" gradientUnits="userSpaceOnUse">
-                            <stop stopColor="#1e1b4b" />
-                            <stop offset="1" stopColor="#1e40af" />
-                        </linearGradient>
-                    )}
-                </defs>
+        <div className={cn("flex items-center gap-2.5 cursor-pointer group", className)}>
+            {/* Highly polished, vibrant SVG Logo Mark */}
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-[0_4px_15px_rgba(30,58,138,0.08)] border border-blue-50 group-hover:shadow-[0_8px_25px_rgba(30,58,138,0.15)] group-hover:scale-105 transition-all duration-300">
+                <svg
+                    viewBox="0 0 100 100"
+                    className="w-6 h-6"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <defs>
+                        {variant === "white" ? (
+                            <linearGradient id={gradId} x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#FFFFFF" />
+                                <stop offset="1" stopColor="#E2E8F0" />
+                            </linearGradient>
+                        ) : (
+                            <linearGradient id={gradId} x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#2563EB" /> {/* Blue 600 */}
+                                <stop offset="1" stopColor="#0EA5E9" /> {/* Sky 500 */}
+                            </linearGradient>
+                        )}
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
 
-                {/* V shape — evenodd punches a hole for the hollow effect */}
-                <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M 0,0 L 38,0 L 100,158 L 162,0 L 200,0 L 100,175 Z M 23,0 L 100,144 L 177,0 L 162,0 L 100,127 L 38,0 Z"
-                    fill={`url(#${gradId})`}
-                />
-
-                {/* Two diagonal accent lines inside the right arm */}
-                <line x1="137" y1="3" x2="164" y2="55" stroke={`url(#${gradId})`} strokeWidth="6" strokeLinecap="round" />
-                <line x1="150" y1="3" x2="181" y2="61" stroke={`url(#${gradId})`} strokeWidth="6" strokeLinecap="round" />
-            </svg>
+                    {/* Left Wing */}
+                    <path
+                        d="M20 15 L42 85 L58 85 L36 15 Z"
+                        fill={`url(#${gradId})`}
+                        opacity="0.9"
+                    />
+                    
+                    {/* Right Wing (Overlapping) */}
+                    <path
+                        d="M80 15 L50 95 L35 95 L65 15 Z"
+                        fill={`url(#${gradId})`}
+                        filter="url(#glow)"
+                    />
+                    
+                    {/* Center Accent Dot */}
+                    <circle cx="50" cy="25" r="5" fill="#1E3A8A" opacity={variant === "white" ? 0.5 : 1} />
+                </svg>
+            </div>
 
             {!iconOnly && (
                 <span className={cn(
-                    "font-black text-xl tracking-tighter uppercase italic select-none transition-colors",
+                    "font-black text-2xl tracking-tighter select-none transition-colors font-outfit",
                     variant === "white"
                         ? "text-white"
-                        : isDark
-                            ? "bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent"
-                            : "bg-gradient-to-r from-indigo-900 to-blue-800 bg-clip-text text-transparent"
+                        : "text-[#0A192F] group-hover:text-[#1E3A8A]"
                 )}>
                     Vocaris
                 </span>

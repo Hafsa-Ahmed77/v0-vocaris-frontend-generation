@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
  * Note: '/auth' handles its own redirect to '/dashboard' via this middleware
  */
 const PUBLIC_PATHS = [
+  "/",
   "/auth",
   "/auth/callback",
 ]

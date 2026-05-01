@@ -4,92 +4,70 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Premium SaaS color palette */
-  --midnight-navy: #0f172a;
-  --electric-indigo: #6366f1;
-  --sky-blue: #38bdf8;
-  --soft-slate: #f9fafb;
-  --slate-gray: #1e293b;
-
-  /* Map premium colors to design tokens */
-  --background: var(--soft-slate);
-  --foreground: var(--slate-gray);
-  --card: oklch(1 0 0);
-  --card-foreground: var(--slate-gray);
-  --popover: oklch(1 0 0);
-  --popover-foreground: var(--slate-gray);
-  --primary: var(--midnight-navy);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: var(--electric-indigo);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: var(--sky-blue);
-  --accent-foreground: oklch(0.145 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: var(--electric-indigo);
-  --chart-1: var(--midnight-navy);
-  --chart-2: var(--electric-indigo);
-  --chart-3: var(--sky-blue);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Vocaris Design System — Light Off-White + Dark Blue */
+  --background: #FAFBFC;
+  --foreground: #0A192F;
+  --card: #FFFFFF;
+  --card-foreground: #0A192F;
+  --popover: #FFFFFF;
+  --popover-foreground: #0A192F;
+  --primary: #1E3A8A; /* Dark Blue */
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F8FAFC;
+  --muted-foreground: #64748B;
+  --accent: #DBEAFE;
+  --accent-foreground: #1E3A8A;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(10, 25, 47, 0.08);
+  --input: rgba(10, 25, 47, 0.08);
+  --ring: #1E3A8A;
   --radius: 0.75rem;
-  --sidebar: rgba(15, 23, 42, 0.95);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: var(--electric-indigo);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: var(--sky-blue);
-  --sidebar-accent-foreground: oklch(0.145 0 0);
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: var(--electric-indigo);
+
+  /* Sidebar tokens */
+  --sidebar: rgba(255, 255, 255, 0.95);
+  --sidebar-foreground: #0A192F;
+  --sidebar-primary: #1E3A8A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #DBEAFE;
+  --sidebar-accent-foreground: #1E3A8A;
+  --sidebar-border: rgba(10, 25, 47, 0.1);
+  --sidebar-ring: #1E3A8A;
+
+  /* Chart tokens */
+  --chart-1: #1E3A8A;
+  --chart-2: #3B82F6;
+  --chart-3: #0EA5E9;
+  --chart-4: #6366F1;
+  --chart-5: #8B5CF6;
 }
 
+/* Fallback for components that might still try to use dark mode, map them to light mode tokens to enforce light mode everywhere */
 .dark {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --card: #1e293b;
-  --card-foreground: #f1f5f9;
-  --popover: #1e293b;
-  --popover-foreground: #f1f5f9;
-  --primary: #38bdf8;
-  --primary-foreground: #0f172a;
-  --secondary: #818cf8;
-  --secondary-foreground: #0f172a;
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: #38bdf8;
-  --accent-foreground: #0f172a;
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: #818cf8;
-  --chart-1: #38bdf8;
-  --chart-2: #818cf8;
-  --chart-3: #a78bfa;
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: #FAFBFC;
+  --foreground: #0A192F;
+  --card: #FFFFFF;
+  --card-foreground: #0A192F;
+  --popover: #FFFFFF;
+  --popover-foreground: #0A192F;
+  --primary: #1E3A8A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F8FAFC;
+  --muted-foreground: #64748B;
+  --accent: #DBEAFE;
+  --accent-foreground: #1E3A8A;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(10, 25, 47, 0.08);
+  --input: rgba(10, 25, 47, 0.08);
+  --ring: #1E3A8A;
 }
 
 @theme inline {
-  /* Added custom premium colors to Tailwind theme */
-  --color-midnight-navy: #0f172a;
-  --color-electric-indigo: #6366f1;
-  --color-sky-blue: #38bdf8;
-  --color-soft-slate: #f9fafb;
-  --color-slate-gray: #1e293b;
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -109,11 +87,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -126,12 +99,19 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  --font-sans: var(--font-sans);
+  --font-outfit: var(--font-outfit);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    /* Hide scrollbars globally – scrolling still works */
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
@@ -141,11 +121,14 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-outfit tracking-tight;
   }
 }
 
-/* Keep .no-scrollbar utility for explicit use */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -159,59 +142,49 @@
   .bg-noise {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   }
+  
+  .text-gradient-primary {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-[#0A192F] to-[#1E3A8A];
+  }
 }
 
-/* Premium glassmorphism and animation utilities */
 @layer components {
   .glass {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-lg;
-  }
-
-  .glass-dark {
-    @apply bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-lg;
-  }
-
-  .hover-lift {
-    @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
-  }
-
-  .glow-accent {
-    @apply shadow-lg;
-  }
-
-  /* Updated gradient-text to use design tokens instead of custom color names */
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent;
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)];
   }
 
   .shimmer {
     background: linear-gradient(90deg,
         rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.6) 50%,
         rgba(255, 255, 255, 0) 100%);
     background-size: 200% 100%;
-    animation: shimmer 2s infinite;
+    animation: shimmer 3s infinite;
   }
 
   @keyframes shimmer {
     0% {
       background-position: -200% 0;
     }
-
     100% {
       background-position: 200% 0;
     }
   }
 }
 
-@keyframes waveMove {
-  from {
-    transform: translateX(-10%);
-  }
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
 
-  to {
-    transform: translateX(10%);
-  }
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
 }
 
 @keyframes shake {
@@ -223,5 +196,11 @@
 @layer utilities {
   .animate-shake {
     animation: shake 0.2s ease-in-out 0s 2;
+  }
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  .animate-float-slow {
+    animation: float-slow 8s ease-in-out infinite;
   }
 }

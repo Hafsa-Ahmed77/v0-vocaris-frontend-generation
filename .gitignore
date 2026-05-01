@@ -33,3 +33,5 @@ ENV/
 *.egg-info/
 dist/
 build/
+
+vocaris_brief.md
