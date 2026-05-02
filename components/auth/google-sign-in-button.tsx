@@ -31,10 +31,14 @@ export function GoogleSignInButton({
       aria-busy={loading}
       aria-label="Sign in with Google"
     >
-      <span className="mr-2 inline-flex">
-        <FcGoogle size={18} />
+      <img
+        src="https://www.google.com/favicon.ico"
+        className={`size-5 sm:size-6 transition-all ${loading ? "" : "grayscale group-hover:grayscale-0"}`}
+        alt="Google"
+      />
+      <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">
+        {loading ? "Connecting…" : "Google Workspace Sync"}
       </span>
-      {loading ? "Connecting…" : "Continue with Google"}
     </Button>
   )
 }

@@ -10,6 +10,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { verifyToken } from "@/lib/api"
 import { setAuthCookie } from "@/lib/auth-cookies"
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
 
 export default function AuthPage() {
   const router = useRouter()
@@ -78,10 +79,9 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-4 sm:space-y-6">
-                  <button className="w-full h-16 sm:h-20 border border-slate-100 rounded-xl flex items-center justify-center gap-3 sm:gap-4 hover:bg-slate-50 transition-all group bg-white shadow-sm ring-1 ring-slate-100/50">
-                    <img src="https://www.google.com/favicon.ico" className="size-5 sm:size-6 grayscale group-hover:grayscale-0 transition-all" alt="Google" />
-                    <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">Google Workspace Sync</span>
-                  </button>
+                  <div className="w-full">
+                    <GoogleSignInButton className="w-full h-16 sm:h-20 border border-slate-100 rounded-xl flex items-center justify-center gap-3 sm:gap-4 hover:bg-slate-50 transition-all group bg-white shadow-sm ring-1 ring-slate-100/50" />
+                  </div>
 
                   <div className="flex items-center justify-center gap-2">
                     <div className="size-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]" />
