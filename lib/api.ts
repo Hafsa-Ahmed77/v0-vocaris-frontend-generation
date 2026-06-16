@@ -203,8 +203,9 @@ export function getAuthConfig() {
 ========================= */
 
 // Upcoming meetings (calendar)
-export function getUpcomingMeetings() {
-  return apiFetch("/calendar/events")
+export function getUpcomingMeetings(daysAhead?: number) {
+  const query = daysAhead ? `?days_ahead=${daysAhead}` : ""
+  return apiFetch(`/calendar/events${query}`)
 }
 
 // Past meetings / summaries
@@ -219,6 +220,11 @@ export function getMeetingHistory(limit = 50, offset = 0) {
 // Status of a specific bot session
 export function getMeetingStatus(botId: string) {
   return apiFetch(`/meeting-status?bot_id=${botId}`)
+}
+
+// Get all active meeting sessions for the current user
+export function getActiveMeetings() {
+  return apiFetch("/meeting-active")
 }
 
 /**
@@ -256,21 +262,31 @@ export function disableAutoJoin(eventId: string) {
 }
 
 // Start a meeting manually
-export function startMeeting(meetingUrl: string, isScrum = false, title?: string, jobId?: string) {
+export function startMeeting(
+  meetingUrl: string,
+  isScrum = false,
+  title?: string,
+  jobId?: string,
+  botName?: string,
+  additionalInfo?: string
+) {
   return apiFetch("/start-meeting", {
     method: "POST",
     body: JSON.stringify({
       meeting_url: meetingUrl,
       is_scrum: isScrum,
       meeting_title: title,
-      job_id: jobId
+      job_id: jobId,
+      bot_name: botName,
+      additional_info: additionalInfo
     }),
   })
 }
 
 // Get general meeting transcripts / tickets (System A)
-export function getMeetingTranscripts(botId: string, mode = "simple", autoProcess = true) {
-  return apiFetch(`/meeting-transcripts/${botId}?mode=${mode}&auto_process=${autoProcess}`)
+export function getMeetingTranscripts(botId: string, mode = "simple", autoProcess = true, format?: string) {
+  const formatQuery = format ? `&format=${format}` : ""
+  return apiFetch(`/meeting-transcripts/${botId}?mode=${mode}&auto_process=${autoProcess}${formatQuery}`)
 }
 
 /**
@@ -330,19 +346,34 @@ export function getClickUpWorkspace(token: string) {
   return apiFetch(`/clickup/workspace?token=${token}`)
 }
 
+// Exchange ClickUp OAuth code for access token
+export function authorizeClickUp(code: string) {
+  return apiFetch(`/clickup/authorize?code=${code}`)
+}
+
 // Create a ClickUp task
 export function createClickUpTask(data: {
   list_id: string
   token: string
-  title: string
+  title?: string
+  name?: string
   description?: string
   priority?: number
   assignees?: string[]
 }) {
+  const { title, name, ...rest } = data
   return apiFetch("/clickup/task", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      name: name || title || "",
+      ...rest
+    }),
   })
+}
+
+// Get members who have access to a specific ClickUp list
+export function getClickUpListMembers(listId: string, token: string) {
+  return apiFetch(`/clickup/list/${listId}/members?token=${token}`)
 }
 
 /* =========================
@@ -385,6 +416,18 @@ export function updateJob(jobId: string, params: { company_name?: string, role?:
 export function deleteJob(jobId: string) {
   return apiFetch(`/voice-meeting/jobs/${jobId}`, {
     method: "DELETE",
+  })
+}
+
+// Check the onboarding status of a specific job
+export function getOnboardingStatus(jobId: string) {
+  return apiFetch(`/voice-meeting/jobs/${jobId}/onboarding-status`)
+}
+
+// Start a fresh onboarding session for a job context
+export function redoOnboarding(jobId: string) {
+  return apiFetch(`/voice-meeting/ws/redo-onboarding/${jobId}`, {
+    method: "POST"
   })
 }
 

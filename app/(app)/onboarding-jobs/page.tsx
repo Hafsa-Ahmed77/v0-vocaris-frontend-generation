@@ -33,13 +33,15 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import useSWR from "swr"
 import { PremiumLoader } from "@/components/ui/premium-loader"
-import { getUserJobs, createJob, updateJob, deleteJob, getJobDetails, getVoiceMeetingTranscripts, updateVoiceMessage } from "@/lib/api"
+import { getUserJobs, createJob, updateJob, deleteJob, getJobDetails, getVoiceMeetingTranscripts, updateVoiceMessage, redoOnboarding, getOnboardingStatus } from "@/lib/api"
 
 type Job = {
     job_id: string;
     company_name: string;
     role: string;
     last_session_id?: string;
+    onboarding_status?: "not_started" | "empty" | "partial" | "complete"
+    can_redo?: boolean
 }
 
 export default function OnboardingJobsPage() {
@@ -73,6 +75,7 @@ export default function OnboardingJobsPage() {
     // Editing & Deleting
     const [editingJob, setEditingJob] = useState<Job | null>(null)
     const [isDeleting, setIsDeleting] = useState<string | null>(null)
+    const [isRedoing, setIsRedoing] = useState<string | null>(null)
 
     // Transcripts viewer state
     const [viewingTranscriptsJob, setViewingTranscriptsJob] = useState<Job | null>(null)
@@ -101,16 +104,32 @@ export default function OnboardingJobsPage() {
 
         const jobsWithSessions = await Promise.all(list.map(async (job: any) => {
             try {
+                // Fetch onboarding status from backend
+                const statusData = await getOnboardingStatus(job.job_id).catch(() => null)
+                const onboardingStatus = typeof statusData === 'string' 
+                    ? statusData 
+                    : (statusData?.status || "not_started")
+                const canRedo = typeof statusData === 'object' && statusData?.can_redo !== undefined 
+                    ? statusData.can_redo 
+                    : (onboardingStatus === "empty" || onboardingStatus === "partial")
+
                 const details = await getJobDetails(job.job_id) as any
                 const sessions = details?.conversation_sessions || details?.voice_sessions || details?.onboarding_sessions || details?.sessions || details?.recordings || details?.voice_meeting_sessions || details?.onboarding_history || []
                 const directSid = details?.session_id || details?.bot_id || details?.id;
 
+                let lastSid = undefined
                 if (sessions && sessions.length > 0) {
                     const latest = sessions[sessions.length - 1]
-                    const sid = latest.session_id || latest.bot_id || latest.id || latest.uuid
-                    return { ...job, last_session_id: sid }
+                    lastSid = latest.session_id || latest.bot_id || latest.id || latest.uuid
                 } else if (directSid) {
-                    return { ...job, last_session_id: directSid }
+                    lastSid = directSid
+                }
+
+                return {
+                    ...job,
+                    last_session_id: lastSid,
+                    onboarding_status: onboardingStatus,
+                    can_redo: canRedo
                 }
             } catch (e) { }
             return job
@@ -140,7 +159,16 @@ export default function OnboardingJobsPage() {
             // Auto-hide after 3 seconds
             setTimeout(() => setShowSuccess(false), 3000)
         } catch (e: any) {
-            setError("Failed to create job. Please try again.")
+            let msg = "Failed to create job. Please try again."
+            try {
+                const parsed = JSON.parse(e.message)
+                msg = parsed.detail || parsed.message || parsed.error || msg
+            } catch {
+                if (e.message && e.message !== "API request failed" && e.message !== "[object Object]") {
+                    msg = e.message
+                }
+            }
+            setError(msg)
         } finally {
             setSubmitting(false)
         }
@@ -160,7 +188,16 @@ export default function OnboardingJobsPage() {
             setEditingJob(null)
             setForm({ company_name: "", role: "" })
         } catch (e: any) {
-            setError("Failed to update job.")
+            let msg = "Failed to update job."
+            try {
+                const parsed = JSON.parse(e.message)
+                msg = parsed.detail || parsed.message || parsed.error || msg
+            } catch {
+                if (e.message && e.message !== "API request failed" && e.message !== "[object Object]") {
+                    msg = e.message
+                }
+            }
+            setError(msg)
         } finally {
             setSubmitting(false)
         }
@@ -176,6 +213,24 @@ export default function OnboardingJobsPage() {
             setError("Failed to delete job.")
         } finally {
             setIsDeleting(null)
+        }
+    }
+
+    const handleRedoOnboarding = async (job: Job) => {
+        if (!confirm(`Start a fresh onboarding session for "${job.role} @ ${job.company_name}"?`)) return
+        setIsRedoing(job.job_id)
+        try {
+            const data = await redoOnboarding(job.job_id) as any
+            const sessionId = data?.session_id
+            if (sessionId) {
+                router.push(`/onboarding-conversation?job_id=${job.job_id}&session_id=${sessionId}&auto_start=true`)
+            } else {
+                router.push(`/onboarding-conversation?job_id=${job.job_id}&auto_start=true`)
+            }
+        } catch (e: any) {
+            setError("Failed to start redo session. Please try again.")
+        } finally {
+            setIsRedoing(null)
         }
     }
 
@@ -236,6 +291,7 @@ export default function OnboardingJobsPage() {
     const openReviewModal = async (job: Job) => {
         if (!job.last_session_id) return
 
+        // Set initial state — open modal immediately so user sees loading
         setReviewingJob(job)
         setIsReviewModalOpen(true)
         setIsReviewLoading(true)
@@ -243,11 +299,54 @@ export default function OnboardingJobsPage() {
         setEditingMsgIndex(null)
 
         try {
-            const data = await getVoiceMeetingTranscripts(job.last_session_id) as any
-            const list = Array.isArray(data) ? data : (data?.transcripts || data?.data || [])
-            setReviewTranscripts(list)
+            // Fetch LIVE onboarding status and transcripts in parallel
+            const [statusData, transcriptData] = await Promise.allSettled([
+                getOnboardingStatus(job.job_id),
+                getVoiceMeetingTranscripts(job.last_session_id)
+            ])
+
+            // Parse transcripts first — we need them to compute status as fallback
+            let transcriptList: any[] = []
+            if (transcriptData.status === "fulfilled") {
+                const data = transcriptData.value as any
+                transcriptList = Array.isArray(data) ? data : (data?.transcripts || data?.data || [])
+                setReviewTranscripts(transcriptList)
+            }
+
+            // Parse status from backend
+            let finalStatus: string = "not_started"
+            let finalCanRedo: boolean = false
+
+            if (statusData.status === "fulfilled" && statusData.value) {
+                const raw = statusData.value as any
+                finalStatus = typeof raw === 'string' ? raw : (raw?.status || "not_started")
+                finalCanRedo = typeof raw === 'object' && raw?.can_redo !== undefined
+                    ? raw.can_redo
+                    : (finalStatus === "empty" || finalStatus === "partial")
+            }
+
+            // FALLBACK: If backend says not_started but we actually have a session with transcripts,
+            // compute real status by counting user messages in the transcript
+            if (finalStatus === "not_started" && transcriptList.length > 0) {
+                const userMsgCount = transcriptList.filter((m: any) => m.role === "user").length
+                if (userMsgCount === 0) {
+                    finalStatus = "empty"
+                    finalCanRedo = true
+                } else if (userMsgCount < 3) {
+                    finalStatus = "partial"
+                    finalCanRedo = true
+                } else {
+                    finalStatus = "complete"
+                    finalCanRedo = false
+                }
+                console.log(`[ReviewModal] Backend said not_started but found ${userMsgCount} user msgs → computed status: ${finalStatus}`)
+            }
+
+            console.log(`[ReviewModal] Final status for job ${job.job_id}:`, finalStatus)
+            setReviewingJob(prev => prev ? { ...prev, onboarding_status: finalStatus as Job["onboarding_status"], can_redo: finalCanRedo } : prev)
+
         } catch (err) {
-            console.error("[ReviewModal] Failed to fetch transcripts:", err)
+            console.error("[ReviewModal] Failed to fetch data:", err)
         } finally {
             setIsReviewLoading(false)
         }
@@ -328,8 +427,15 @@ export default function OnboardingJobsPage() {
                         {job.role}
                     </h3>
                     {job.last_session_id && (
-                        <div className="px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[7px] font-black text-cyan-400 uppercase tracking-widest whitespace-nowrap">
-                            VOICE READY
+                        <div className={cn(
+                            "px-1.5 py-0.5 rounded-full border text-[7px] font-black uppercase tracking-widest whitespace-nowrap",
+                            job.onboarding_status === "complete" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+                            job.onboarding_status === "partial" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                            "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                        )}>
+                            {job.onboarding_status === "complete" ? "VOICE READY" :
+                             job.onboarding_status === "partial" ? "INCOMPLETE PROFILE" :
+                             "SETUP REQUIRED"}
                         </div>
                     )}
                 </div>
@@ -342,7 +448,11 @@ export default function OnboardingJobsPage() {
             <button
                 onClick={() => {
                     if (job.last_session_id) {
-                        openReviewModal(job)
+                        if (job.onboarding_status === "empty") {
+                            handleRedoOnboarding(job)
+                        } else {
+                            openReviewModal(job)
+                        }
                     } else {
                         handleStartSession(job)
                     }
@@ -359,10 +469,17 @@ export default function OnboardingJobsPage() {
                 )}
             >
                 {job.last_session_id ? (
-                    <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Review Voice Profile
-                    </>
+                    job.onboarding_status === "empty" ? (
+                        <>
+                            {isRedoing === job.job_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                            {isRedoing === job.job_id ? "Starting..." : "Redo Onboarding"}
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Review Voice Profile
+                        </>
+                    )
                 ) : (
                     <>
                         <Mic className="w-3.5 h-3.5" />
@@ -371,6 +488,29 @@ export default function OnboardingJobsPage() {
                 )}
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </button>
+
+            {/* Redo Onboarding button — shown for partial sessions */}
+            {job.can_redo && job.last_session_id && job.onboarding_status === "partial" && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        handleRedoOnboarding(job)
+                    }}
+                    disabled={isRedoing === job.job_id}
+                    className={cn(
+                        "w-full flex items-center justify-center gap-2 py-2 px-5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all duration-300 relative z-10 mt-2",
+                        isDarkMode
+                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/40"
+                            : "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 hover:border-amber-400"
+                    )}
+                >
+                    {isRedoing === job.job_id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <RotateCcw className="w-3 h-3" />
+                    }
+                    {isRedoing === job.job_id ? "Starting..." : "Redo Onboarding"}
+                </button>
+            )}
         </motion.div>
     )
 
@@ -853,18 +993,43 @@ export default function OnboardingJobsPage() {
                             </div>
 
                             {/* Modal Footer */}
-                            <div className="p-6 border-t border-white/5 bg-slate-900/50 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-slate-500">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Status: Ready for Finalization</span>
+                            <div className="p-6 border-t border-white/5 bg-slate-900/50 flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div className="flex items-center gap-2 text-slate-500 w-full md:w-auto">
+                                    {(reviewingJob.onboarding_status === "empty" || reviewingJob.onboarding_status === "partial") ? (
+                                        <>
+                                            <RotateCcw className="w-4 h-4 text-amber-500" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">
+                                                {reviewingJob.onboarding_status === "empty" ? "Status: Empty Profile (Redo Required)" : "Status: Incomplete Profile"}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Status: Ready for Finalization</span>
+                                        </>
+                                    )}
                                 </div>
-                                <button
-                                    onClick={() => setIsReviewModalOpen(false)}
-                                    className="h-12 px-8 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl border border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all active:scale-95 uppercase text-[10px] tracking-widest flex items-center gap-2"
-                                >
-                                    <Check className="w-4 h-4" />
-                                    Finalize & Save Profile
-                                </button>
+                                <div className="flex items-center gap-3 w-full md:w-auto">
+                                    {(reviewingJob.onboarding_status === "empty" || reviewingJob.onboarding_status === "partial") && (
+                                        <button
+                                            onClick={() => handleRedoOnboarding(reviewingJob)}
+                                            disabled={isRedoing === reviewingJob.job_id}
+                                            className="flex-1 md:flex-none h-12 px-6 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl border border-amber-400 shadow-[0_0_20px_rgba(217,119,6,0.2)] transition-all active:scale-95 uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                                        >
+                                            {isRedoing === reviewingJob.job_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                                            {isRedoing === reviewingJob.job_id ? "Starting..." : "Redo Onboarding"}
+                                        </button>
+                                    )}
+                                    {reviewingJob.onboarding_status !== "empty" && (
+                                        <button
+                                            onClick={() => setIsReviewModalOpen(false)}
+                                            className="flex-1 md:flex-none h-12 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl border border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all active:scale-95 uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                                        >
+                                            <Check className="w-4 h-4" />
+                                            Finalize & Save
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </motion.div>
                     </div>

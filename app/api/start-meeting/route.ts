@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
             bot_name: body.bot_name?.trim() || "Vocaris AI",
             meeting_title: body.meeting_title || (body.is_scrum ? "Scrum Meeting" : "New Meeting"),
             is_scrum: body.is_scrum || false,
+            additional_info: body.additional_info || undefined,
         }
 
         const backendUrl = "https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/start"

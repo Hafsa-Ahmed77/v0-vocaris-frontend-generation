@@ -5,7 +5,7 @@ const BASE = "https://vocaris-ztudf.ondigitalocean.app/api/v1"
 // POST /api/meeting-transcripts/[botId]/query -> Proxy to System A RAG Query
 export async function POST(
     req: NextRequest,
-    { params }: { params: { botId: string } }
+    { params }: { params: Promise<{ botId: string }> }
 ) {
     try {
         // In Next.js 15, params must be awaited

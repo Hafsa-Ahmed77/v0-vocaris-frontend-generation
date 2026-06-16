@@ -132,7 +132,7 @@ function ConnectingLines({ count = 100 }: { count?: number }) {
     return (
         <lineSegments ref={linesRef}>
             <bufferGeometry>
-                <bufferAttribute attach="attributes-position" count={count * 2} array={positions} itemSize={3} />
+                <bufferAttribute attach="attributes-position" args={[positions, 3]} />
             </bufferGeometry>
             <lineBasicMaterial color="#3B82F6" transparent opacity={0.15} />
         </lineSegments>

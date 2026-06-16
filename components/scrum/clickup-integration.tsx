@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, CheckCircle2, AlertCircle, X, Sparkles } from "lucide-react"
+import { getClickUpListMembers } from "@/lib/api"
 
 type ClickUpHierarchy = {
     user: any
@@ -40,6 +41,8 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
     const [selectedFolderId, setSelectedFolderId] = useState<string>("")
     const [selectedListId, setSelectedListId] = useState<string>("")
     const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("")
+    const [members, setMembers] = useState<any[]>([])
+    const [loadingMembers, setLoadingMembers] = useState(false)
 
     // Load persistent token on mount
     useEffect(() => {
@@ -210,6 +213,25 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
         if (activeFolderId && !selectedFolderId) setSelectedFolderId(activeFolderId)
         if (resolvedListId && !selectedListId) setSelectedListId(resolvedListId)
     }, [activeTeamId, activeSpaceId, activeFolderId, resolvedListId])
+
+    // Fetch ClickUp list members when target list changes
+    useEffect(() => {
+        if (resolvedListId && token) {
+            setLoadingMembers(true)
+            getClickUpListMembers(resolvedListId, token)
+                .then((res: any) => {
+                    const list = Array.isArray(res) ? res : (res?.members || [])
+                    setMembers(list)
+                })
+                .catch(err => {
+                    console.error("Failed to fetch list members:", err)
+                    setMembers([])
+                })
+                .finally(() => setLoadingMembers(false))
+        } else {
+            setMembers([])
+        }
+    }, [resolvedListId, token])
 
     return (
         <Card className="w-[95vw] sm:w-full max-w-md mx-auto bg-slate-900 border-slate-800 text-slate-100 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh]">
@@ -386,6 +408,30 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
                                         {allLists.map((l: any) => (
                                             <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
                                         ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        {/* ASSIGNEE SELECTOR */}
+                        {resolvedListId && (
+                            <div className="space-y-2 animate-in fade-in duration-300">
+                                <Label className="text-xs">Assign Tickets to (Optional)</Label>
+                                <Select value={selectedAssigneeId} onValueChange={setSelectedAssigneeId}>
+                                    <SelectTrigger className="bg-slate-950 border-slate-700 h-10 text-sm">
+                                        <SelectValue placeholder={loadingMembers ? "Loading list members..." : "Select Member"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Unassigned</SelectItem>
+                                        {members.map((m: any) => {
+                                            const memberObj = m.user || m
+                                            const displayName = memberObj.username || memberObj.email || `Member ${memberObj.id}`
+                                            return (
+                                                <SelectItem key={memberObj.id} value={String(memberObj.id)}>
+                                                    {displayName}
+                                                </SelectItem>
+                                            )
+                                        })}
                                     </SelectContent>
                                 </Select>
                             </div>

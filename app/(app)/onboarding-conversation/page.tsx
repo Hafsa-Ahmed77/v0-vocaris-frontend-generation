@@ -39,6 +39,8 @@ import {
   getVoiceMeetingStatus,
   updateVoiceMessage,
   endVoiceMeeting,
+  getOnboardingStatus,
+  redoOnboarding,
 } from "@/lib/api"
 
 type Transcript = { speaker: "user" | "agent"; text: string; message_id?: string }
@@ -86,6 +88,8 @@ export default function OnboardingConversation() {
 
   const [currentBotId, setCurrentBotId] = useState<string | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [onboardingStatus, setOnboardingStatus] = useState<"not_started" | "empty" | "partial" | "complete" | null>(null)
+  const [isRedoing, setIsRedoing] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -298,6 +302,26 @@ export default function OnboardingConversation() {
     }
   }, [timeLeft, status, router])
 
+  const handleRedoOnboarding = async () => {
+    const jobId = selectedJob?.job_id || searchParams.get("job_id");
+    if (!jobId) return;
+    if (!confirm(`Restart onboarding for this role?`)) return;
+    setIsRedoing(true);
+    try {
+      const data: any = await redoOnboarding(jobId);
+      if (data?.session_id) {
+        window.location.href = `/onboarding-conversation?job_id=${jobId}&session_id=${data.session_id}&auto_start=true`;
+      } else {
+        window.location.href = `/onboarding-conversation?job_id=${jobId}&auto_start=true`;
+      }
+    } catch (e: any) {
+      console.error("Redo failed", e);
+      alert("Failed to start redo session.");
+    } finally {
+      setIsRedoing(false);
+    }
+  };
+
   const playAudio = async (base64: string) => {
     try {
       setAgentSpeaking(true)
@@ -383,7 +407,53 @@ export default function OnboardingConversation() {
           }))
           setIsSyncing(false)
           syncingRef.current = false
+
+          // Explicitly check status here to guarantee UI updates correctly for partial/complete
+          const currentJobId = selectedJob?.job_id || searchParams.get("job_id");
+          if (currentJobId) {
+             console.log(`[NeuralSync] Fetching onboarding status for job ${currentJobId} after success...`);
+             try {
+                const statusRes: any = await getOnboardingStatus(currentJobId);
+                console.log(`[NeuralSync] Onboarding status result:`, statusRes);
+                // Backend may return a string directly or an object with .status
+                let resolvedStatus = typeof statusRes === 'string' ? statusRes : statusRes?.status;
+
+                // Fallback: if still not_started but we have transcripts, compute from user message count
+                if (!resolvedStatus || resolvedStatus === 'not_started') {
+                  const userMsgCount = transcriptList.filter((m: any) => m.role === 'user').length;
+                  if (userMsgCount === 0) resolvedStatus = 'empty';
+                  else if (userMsgCount < 3) resolvedStatus = 'partial';
+                  else resolvedStatus = 'complete';
+                  console.log(`[NeuralSync] Computed status from ${userMsgCount} user msgs: ${resolvedStatus}`);
+                }
+
+                setOnboardingStatus(resolvedStatus as any);
+             } catch (e) {
+                console.error(`[NeuralSync] Failed to fetch onboarding status`, e);
+                // Fallback: compute from transcript counts
+                const userMsgCount = transcriptList.filter((m: any) => m.role === 'user').length;
+                const fallbackStatus = userMsgCount === 0 ? 'empty' : userMsgCount < 3 ? 'partial' : 'complete';
+                setOnboardingStatus(fallbackStatus as any);
+             }
+          }
         } else if (retryCount < 8) {
+          const currentJobId = selectedJob?.job_id || searchParams.get("job_id");
+          if (currentJobId) {
+            try {
+              const statusRes: any = await getOnboardingStatus(currentJobId);
+              console.log(`[NeuralSync] Onboarding status result in retry:`, statusRes);
+              const resolvedStatus = typeof statusRes === 'string' ? statusRes : statusRes?.status;
+              if (resolvedStatus === "empty") {
+                console.log("[NeuralSync] Session is confirmed empty. Skipping further retries.");
+                setOnboardingStatus("empty");
+                setIsSyncing(false);
+                syncingRef.current = false;
+                return;
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
           const delay = 5000
           console.warn(`[NeuralSync] Transcripts not ready or empty. Retrying in ${delay / 1000}s... (Attempt ${retryCount + 1})`)
           // 🛡️ DONT set syncingRef/isSyncing to false yet, we ARE retrying
@@ -394,11 +464,11 @@ export default function OnboardingConversation() {
         } else {
           setIsSyncing(false)
           syncingRef.current = false
-          console.error("[NeuralSync] All sync attempts exhausted.")
+          console.warn("[NeuralSync] All sync attempts exhausted.")
         }
       } catch (err: any) {
         const errorMsg = err.message || ""
-        console.error(`[NeuralSync] Voice Meeting transcripts fetch failed:`, errorMsg)
+        console.warn(`[NeuralSync] Voice Meeting transcripts fetch failed:`, errorMsg)
 
         setIsSyncing(false)
         syncingRef.current = false
@@ -1183,7 +1253,7 @@ export default function OnboardingConversation() {
 
       {/* Finishing Action - Shows review guidance before finalizing */}
       <AnimatePresence>
-        {status === "disconnected" && transcripts.length > 0 && (
+        {status === "disconnected" && (transcripts.length > 0 || onboardingStatus === "empty") && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -1191,10 +1261,24 @@ export default function OnboardingConversation() {
           >
             <div className="flex flex-col gap-1 md:gap-2 max-w-2xl">
               <div className="flex flex-wrap items-center gap-1.5 md:gap-3 text-emerald-500">
-                <ShieldCheck className="w-3 h-3 md:w-5 md:h-5" />
-                <span className="text-[7px] md:text-xs font-black uppercase tracking-[0.3em]">Review Mode Active</span>
+                {onboardingStatus === "empty" || onboardingStatus === "partial" ? (
+                  <ShieldCheck className="w-3 h-3 md:w-5 md:h-5 text-amber-500" />
+                ) : (
+                  <ShieldCheck className="w-3 h-3 md:w-5 md:h-5" />
+                )}
+                <span className={cn(
+                  "text-[7px] md:text-xs font-black uppercase tracking-[0.3em]",
+                  (onboardingStatus === "empty" || onboardingStatus === "partial") ? "text-amber-500" : ""
+                )}>
+                  {onboardingStatus === "empty" || onboardingStatus === "partial" ? "Review Required" : "Review Mode Active"}
+                </span>
                 {selectedJob && (
-                  <div className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[6px] md:text-[9px] font-black uppercase tracking-widest">
+                  <div className={cn(
+                    "px-1.5 py-0.5 rounded border text-[6px] md:text-[9px] font-black uppercase tracking-widest",
+                    (onboardingStatus === "empty" || onboardingStatus === "partial") 
+                      ? "bg-amber-500/10 border-amber-500/20 text-amber-500" 
+                      : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                  )}>
                     {selectedJob.role} @ {selectedJob.company_name}
                   </div>
                 )}
@@ -1210,14 +1294,24 @@ export default function OnboardingConversation() {
                 )}
               </div>
               <h2 className="text-xs md:text-2xl font-black text-white uppercase tracking-tight">
-                {isSyncing ? "Saving Profile..." : transcripts.length > 0 ? "Review & Finish" : "Awaiting Data..."}
+                {isSyncing 
+                  ? "Saving Profile..." 
+                  : onboardingStatus === "empty"
+                    ? "Session Empty"
+                    : onboardingStatus === "partial"
+                      ? "Incomplete Profile"
+                      : transcripts.length > 0 ? "Review & Finish" : "Awaiting Data..."}
               </h2>
               <p className="text-[8px] md:text-sm text-slate-400 font-medium leading-relaxed">
                 {isSyncing 
                   ? "Saving your voice profile. Please wait."
-                  : transcripts.length > 0 
-                    ? "Extraction successful. Review and correct any terms." 
-                    : "Processing data. Try Force Resync if needed."}
+                  : onboardingStatus === "empty"
+                    ? "No audio detected. Please restart the onboarding to create your profile."
+                    : onboardingStatus === "partial"
+                      ? "We didn't get enough information. Please restart to provide a complete profile."
+                      : transcripts.length > 0 
+                        ? "Extraction successful. Review and correct any terms." 
+                        : "Processing data. Try Force Resync if needed."}
               </p>
             </div>
 
@@ -1229,21 +1323,49 @@ export default function OnboardingConversation() {
                 Return to Jobs
               </button>
               
-              <button
-                onClick={async () => {
-                  await endMeeting(true)
-                  router.push("/dashboard")
-                }}
-                disabled={isSyncing}
-                className={cn(
-                  "flex-[2] lg:flex-none h-12 md:h-20 px-6 md:px-12 text-white font-black rounded-full shadow-lg flex items-center justify-center gap-2 md:gap-4 border transition-all active:scale-95 group shrink-0",
-                  isSyncing ? "bg-slate-700 border-slate-600 opacity-50 cursor-wait" : "bg-green-600 hover:bg-green-500 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.3)]"
-                )}
-              >
-                {isSyncing ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin" /> : <Sparkles className="w-4 h-4 md:w-6 md:h-6 animate-pulse" />}
-                <span className="text-[9px] md:text-base">{isSyncing ? "FINALIZING..." : "FINALIZE PROFILE"}</span>
-                {!isSyncing && <ArrowRight className="w-3.5 h-3.5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />}
-              </button>
+              {(onboardingStatus === "empty" || onboardingStatus === "partial") && (
+                <button
+                  onClick={handleRedoOnboarding}
+                  disabled={isRedoing || isSyncing}
+                  className="flex-1 lg:flex-none h-12 md:h-20 px-6 md:px-8 text-white font-black rounded-full shadow-lg flex items-center justify-center gap-2 md:gap-4 border transition-all active:scale-95 bg-amber-600 hover:bg-amber-500 border-amber-400 shadow-[0_0_20px_rgba(217,119,6,0.3)] shrink-0"
+                >
+                  {isRedoing ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin" /> : <RotateCcw className="w-4 h-4 md:w-6 md:h-6" />}
+                  <span className="text-[9px] md:text-base">{isRedoing ? "STARTING..." : "REDO ONBOARDING"}</span>
+                </button>
+              )}
+
+              {onboardingStatus === "complete" && (
+                <button
+                  onClick={async () => {
+                    await endMeeting(true)
+                    router.push("/dashboard")
+                  }}
+                  disabled={isSyncing}
+                  className={cn(
+                    "flex-[2] lg:flex-none h-12 md:h-20 px-6 md:px-8 text-white font-black rounded-full shadow-lg flex items-center justify-center gap-2 md:gap-4 border transition-all active:scale-95 group shrink-0",
+                    isSyncing ? "bg-slate-700 border-slate-600 opacity-50 cursor-wait" : "bg-green-600 hover:bg-green-500 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.3)]"
+                  )}
+                >
+                  {isSyncing ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin" /> : <Sparkles className="w-4 h-4 md:w-6 md:h-6 animate-pulse" />}
+                  <span className="text-[9px] md:text-base">{isSyncing ? "FINALIZING..." : "FINALIZE PROFILE"}</span>
+                  {!isSyncing && <ArrowRight className="w-3.5 h-3.5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />}
+                </button>
+              )}
+
+              {/* Fallback Finalize — shows when status not yet resolved (null) and transcripts exist */}
+              {onboardingStatus === null && transcripts.length > 0 && !isSyncing && (
+                <button
+                  onClick={async () => {
+                    await endMeeting(true)
+                    router.push("/dashboard")
+                  }}
+                  className="flex-[2] lg:flex-none h-12 md:h-20 px-6 md:px-8 text-white font-black rounded-full shadow-lg flex items-center justify-center gap-2 md:gap-4 border transition-all active:scale-95 group shrink-0 bg-green-600 hover:bg-green-500 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.3)]"
+                >
+                  <Sparkles className="w-4 h-4 md:w-6 md:h-6 animate-pulse" />
+                  <span className="text-[9px] md:text-base">FINALIZE PROFILE</span>
+                  <ArrowRight className="w-3.5 h-3.5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />
+                </button>
+              )}
             </div>
           </motion.div>
         )}

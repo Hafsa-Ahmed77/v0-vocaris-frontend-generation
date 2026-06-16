@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { botId: string } }
+    { params }: { params: Promise<{ botId: string }> }
 ) {
     try {
         const authHeader = req.headers.get("Authorization")
@@ -13,14 +13,14 @@ export async function GET(
         const mode = searchParams.get("mode") || "simple"
         const format = searchParams.get("format") || "json"
         let autoProcess = searchParams.get("auto_process")
-
-        if (mode === "scrum" && !autoProcess) {
-            autoProcess = "false"
-        } else if (!autoProcess) {
-            autoProcess = "true"
+        
+        // Let the backend handle defaults based on the mode.
+        let queryParams = `mode=${mode}&format=${format}`
+        if (autoProcess !== null) {
+            queryParams += `&auto_process=${autoProcess}`
         }
 
-        const officialUrl = `https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/transcripts/${botId}?mode=${mode}&format=${format}&auto_process=${autoProcess}`
+        const officialUrl = `https://vocaris-ztudf.ondigitalocean.app/api/v1/meeting/transcripts/${botId}?${queryParams}`
 
         console.log(`[Proxy] GET Transcripts: ${botId} (Path Param)`)
 

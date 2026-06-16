@@ -221,6 +221,14 @@ export default function MeetingLivePage() {
                           "Terminate Agent & Analyze"
                         )}
                       </Button>
+
+                      <Button
+                        variant="ghost"
+                        onClick={() => router.push("/dashboard")}
+                        className="w-full text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 font-bold uppercase tracking-widest text-[10px] transition-colors"
+                      >
+                        Deploy Another Agent (Go to Dashboard)
+                      </Button>
                     </div>
                   </>
                 )}

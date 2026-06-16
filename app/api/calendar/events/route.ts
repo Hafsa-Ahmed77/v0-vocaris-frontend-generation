@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server"
 export async function GET(req: NextRequest) {
     try {
         const authHeader = req.headers.get("Authorization")
-        const backendUrl = "https://vocaris-ztudf.ondigitalocean.app/api/v1/calendar/events"
+        const { searchParams } = new URL(req.url)
+        const daysAhead = searchParams.get("days_ahead")
+        const backendUrl = daysAhead
+            ? `https://vocaris-ztudf.ondigitalocean.app/api/v1/calendar/events?days_ahead=${daysAhead}`
+            : "https://vocaris-ztudf.ondigitalocean.app/api/v1/calendar/events"
 
         const backendRes = await fetch(backendUrl, {
             method: "GET",

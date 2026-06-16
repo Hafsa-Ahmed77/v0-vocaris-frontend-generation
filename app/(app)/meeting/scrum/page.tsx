@@ -43,6 +43,7 @@ function ScrumBoardContent() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
+    const [isMeetingActive, setIsMeetingActive] = useState(false)
     const [pollCount, setPollCount] = useState(0)
     const [isIntegrationOpen, setIsIntegrationOpen] = useState(false)
     const [isPushed, setIsPushed] = useState(false)
@@ -72,16 +73,24 @@ function ScrumBoardContent() {
                 setError("")
                 console.log("📡 Fetching Scrum data for:", botId)
 
-                const data = await apiFetch(`/meeting-transcripts/${botId}?mode=scrum&auto_process=false`)
+                const data = await apiFetch(`/meeting-transcripts/${botId}?mode=scrum`)
                 console.log("✅ Scrum API Response:", data)
 
+                if (data.status === 'awaiting_analysis') {
+                    setIsMeetingActive(true)
+                    setIsProcessing(true)
+                    return
+                }
+
                 if (data.is_processing) {
+                    setIsMeetingActive(false)
                     setIsProcessing(true)
                     // If still processing, we keep loading false on subsequent polls but keep isProcessing true
                     return
                 }
 
                 setIsProcessing(false)
+                setIsMeetingActive(false)
 
                 let extractedTickets: ScrumTicket[] = []
                 if (data.tickets && Array.isArray(data.tickets)) {
@@ -245,23 +254,57 @@ function ScrumBoardContent() {
             <main className="relative z-10 p-4 lg:p-0 no-scrollbar">
                 {loading || isProcessing ? (
                     <div className="flex flex-col items-center justify-center py-40 space-y-12">
-                        <div className="relative">
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                className="w-20 h-20 rounded-[2rem] border-2 border-blue-500/20 border-t-blue-500 flex items-center justify-center"
-                            />
-                            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-blue-500 animate-pulse" />
-                        </div>
-                        <div className="space-y-4 text-center">
-                            <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
-                                {isProcessing ? "Finalizing Intelligence" : "AI Analysis"}
-                            </h2>
-                            <p className="text-sm font-bold text-slate-500 animate-pulse">
-                                {pollCount > 3
-                                    ? "This is taking longer than usual... still trying."
-                                    : isProcessing ? "Processing meeting data into scrum tickets..." : "Connecting to Vocaris Engine..."}
-                            </p>
+                        {isMeetingActive ? (
+                            <>
+                                <div className="relative">
+                                    <div className="w-24 h-24 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+                                        <div className="w-4 h-4 bg-rose-500 rounded-full animate-ping absolute" />
+                                        <div className="w-4 h-4 bg-rose-500 rounded-full relative z-10" />
+                                    </div>
+                                </div>
+                                <div className="space-y-4 text-center">
+                                    <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
+                                        Meeting In Progress
+                                    </h2>
+                                    <p className="text-sm font-bold text-slate-500 max-w-md mx-auto">
+                                        The AI is currently analyzing the meeting. End the meeting to finalize and generate scrum tickets.
+                                    </p>
+                                    <Button 
+                                        onClick={async () => {
+                                            try {
+                                                await fetch(`/api/end-meeting?botId=${botId}`, { method: 'POST' });
+                                                setIsMeetingActive(false);
+                                                setPollCount(0);
+                                                toast.success("Meeting ended! Generating tickets...");
+                                            } catch (e) {
+                                                toast.error("Failed to end meeting");
+                                            }
+                                        }}
+                                        className="mt-6 bg-rose-600 hover:bg-rose-500 text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-rose-500/30"
+                                    >
+                                        End Meeting & Generate Tickets
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="relative">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                        className="w-20 h-20 rounded-[2rem] border-2 border-blue-500/20 border-t-blue-500 flex items-center justify-center"
+                                    />
+                                    <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-blue-500 animate-pulse" />
+                                </div>
+                                <div className="space-y-4 text-center">
+                                    <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
+                                        {isProcessing ? "Finalizing Intelligence" : "AI Analysis"}
+                                    </h2>
+                                    <p className="text-sm font-bold text-slate-500 animate-pulse">
+                                        {pollCount > 3
+                                            ? "This is taking longer than usual... still trying."
+                                            : isProcessing ? "Processing meeting data into scrum tickets..." : "Connecting to Vocaris Engine..."}
+                                    </p>
                             {pollCount >= 9 && (
                                 <div className="pt-8 flex flex-col gap-4 items-center">
                                     <p className="text-xs text-rose-500 font-bold max-w-xs">
@@ -278,6 +321,8 @@ function ScrumBoardContent() {
                                 </div>
                             )}
                         </div>
+                            </>
+                        )}
                     </div>
                 ) : error ? (
                     <div className="max-w-xl mx-auto p-16 rounded-[4rem] bg-white/70 dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 text-center space-y-10 shadow-3xl backdrop-blur-3xl">
