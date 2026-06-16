@@ -396,11 +396,11 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
                             </div>
                         )}
 
-                        {/* LIST — only show if more than 1 */}
-                        {(activeFolderId || activeSpaceId) && allLists.length > 1 && (
+                        {/* LIST — show always when there are lists, even if just 1 */}
+                        {(activeSpaceId) && allLists.length > 0 && (
                             <div className="space-y-2">
-                                <Label className="text-xs">Select List</Label>
-                                <Select value={selectedListId} onValueChange={setSelectedListId}>
+                                <Label className="text-xs">Select Target List {resolvedListId && <span className="text-emerald-400">✓</span>}</Label>
+                                <Select value={selectedListId || resolvedListId} onValueChange={setSelectedListId}>
                                     <SelectTrigger className="bg-slate-950 border-slate-700 h-10 text-sm">
                                         <SelectValue placeholder="Select Target List" />
                                     </SelectTrigger>
@@ -410,6 +410,7 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {!resolvedListId && <p className="text-[10px] text-amber-400 font-bold">⚠️ Please select a list to enable the Push button</p>}
                             </div>
                         )}
 
@@ -466,18 +467,23 @@ export function ClickUpIntegration({ onCancel, onCommit }: ClickUpIntegrationPro
                 {step === "selection" && (
                     <Button
                         onClick={async () => {
+                            const listId = selectedListId || resolvedListId
+                            if (!listId) {
+                                setError("Please select a list before pushing.")
+                                return
+                            }
                             setLoading(true)
                             try {
-                                await onCommit(resolvedListId, token, selectedAssigneeId)
+                                await onCommit(listId, token, selectedAssigneeId === "none" ? undefined : selectedAssigneeId)
                                 setStep("success")
                             } catch (e) {
-                                // Error is handled by top-level toast/error state
+                                // Error handled by parent toast
                             } finally {
                                 setLoading(false)
                             }
                         }}
-                        disabled={!resolvedListId || loading}
-                        className="bg-[#7b68ee] hover:bg-[#6c5ce7] text-white font-bold w-full sm:w-auto h-11 sm:h-10 px-8"
+                        disabled={(!resolvedListId && !selectedListId) || loading}
+                        className="bg-[#7b68ee] hover:bg-[#6c5ce7] text-white font-bold w-full sm:w-auto h-11 sm:h-10 px-8 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Push Tickets

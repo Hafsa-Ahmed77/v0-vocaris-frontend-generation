@@ -289,6 +289,11 @@ export function getMeetingTranscripts(botId: string, mode = "simple", autoProces
   return apiFetch(`/meeting-transcripts/${botId}?mode=${mode}&auto_process=${autoProcess}${formatQuery}`)
 }
 
+// Get Scrum Historical Tickets
+export function getMeetingTickets(botId: string) {
+  return apiFetch(`/meeting-tickets/${botId}`)
+}
+
 /**
  * Query Meeting Transcript: Standardized RAG query for a specific bot.
  */

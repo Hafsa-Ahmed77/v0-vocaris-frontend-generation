@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-    MessageSquare, 
-    Ticket, 
-    Calendar, 
-    Clock, 
-    ArrowRight, 
+import {
+    MessageSquare,
+    Ticket,
+    Calendar,
+    Clock,
+    ArrowRight,
     Search,
     Inbox,
     Loader2,
+
     Sparkles,
     CheckCircle2
 } from "lucide-react"
@@ -37,20 +38,20 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
     )
 
     const rawMeetings = historyData?.meetings || []
-    
+
     // Intelligent Filtering
     const meetings = rawMeetings.filter((m: any) => {
-        const isScrum = m.is_scrum === true || 
-                        m.is_scrum === "true" || 
-                        Number(m.is_scrum) === 1 || 
-                        m.scrum_mode === true || 
-                        m.is_scrum_mode === true || 
-                        m.meeting_title?.toLowerCase().includes("scrum");
-        
+        const isScrum = m.is_scrum === true ||
+            m.is_scrum === "true" ||
+            Number(m.is_scrum) === 1 ||
+            m.scrum_mode === true ||
+            m.is_scrum_mode === true ||
+            m.meeting_title?.toLowerCase().includes("scrum");
+
         return type === "scrum" ? isScrum : !isScrum;
     })
 
-    const filteredMeetings = meetings.filter((m: any) => 
+    const filteredMeetings = meetings.filter((m: any) =>
         (m.meeting_title || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
 
@@ -59,7 +60,7 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
             <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-8 animate-in fade-in duration-1000">
                 <div className="relative group">
                     <div className="absolute -inset-4 bg-blue-500/10 dark:bg-cyan-500/10 rounded-full blur-2xl animate-pulse" />
-                    <motion.div 
+                    <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                         className="w-20 h-20 rounded-[2rem] border-2 border-slate-200 dark:border-white/5 border-t-blue-500 dark:border-t-cyan-500 relative z-10"
@@ -76,7 +77,7 @@ export function MeetingSelector({ type, onSelect }: MeetingSelectorProps) {
 
     if (meetings.length === 0) {
         return (
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center space-y-8 p-12 rounded-[3.5rem] bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 backdrop-blur-3xl shadow-2xl max-w-xl w-full mx-auto"
